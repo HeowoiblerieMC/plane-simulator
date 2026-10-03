@@ -1,7 +1,17 @@
 import "./style.css";
-import { Game } from "./core/Game.js";
+import { Game } from "./core/game.js";
 
-async function startApplication() {
+function showStartupError(error) {
+    console.error(error);
+
+    const output = document.querySelector("#startup-error");
+
+    if (output) {
+        output.textContent = `Startup error: ${error.message}`;
+    }
+}
+
+function startApplication() {
     const app = document.querySelector("#app");
 
     if (!app) {
@@ -17,14 +27,8 @@ async function startApplication() {
     window.novaFlightSimulator = game;
 }
 
-startApplication().catch((error) => {
-    console.error(error);
-
-    const output =
-        document.querySelector("#startup-error");
-
-    if (output) {
-        output.textContent =
-            `Startup error: ${error.message}`;
-    }
-});
+try {
+    startApplication();
+} catch (error) {
+    showStartupError(error);
+}
