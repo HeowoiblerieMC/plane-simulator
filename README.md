@@ -1,7 +1,7 @@
 <div align="center">
 
 # ✈️ NOVA FLIGHT SIMULATOR
-
+**https://heowoibleriemc.github.io/plane-simulator/**
 ### Take off from JFK. Choose your aircraft. Own the sky.
 
 A browser-based 3D flight simulator built with **Three.js** and **Vite**.
