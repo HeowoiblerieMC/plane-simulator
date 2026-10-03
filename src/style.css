@@ -9,8 +9,6 @@
 
     color: #ffffff;
     background: #87b9e8;
-    font-synthesis: none;
-    text-rendering: optimizeLegibility;
 }
 
 * {
@@ -41,5 +39,4 @@ canvas {
     display: block;
     width: 100%;
     height: 100%;
-    outline: none;
 }
