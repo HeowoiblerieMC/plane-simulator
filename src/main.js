@@ -1,13 +1,30 @@
 import "./style.css";
 import { Game } from "./core/Game.js";
 
-// Find the application container
-const app = document.querySelector("#app");
+async function startApplication() {
+    const app = document.querySelector("#app");
 
-if (!app) {
-    throw new Error("The application container was not found.");
+    if (!app) {
+        throw new Error(
+            "The application container was not found."
+        );
+    }
+
+    const game = new Game(app);
+
+    game.start();
+
+    window.novaFlightSimulator = game;
 }
 
-// Create and start the simulator
-const game = new Game(app);
-game.start();
+startApplication().catch((error) => {
+    console.error(error);
+
+    const output =
+        document.querySelector("#startup-error");
+
+    if (output) {
+        output.textContent =
+            `Startup error: ${error.message}`;
+    }
+});
