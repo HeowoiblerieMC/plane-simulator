@@ -15,23 +15,102 @@
 
     <title>Nova Flight Simulator</title>
 
-    <link
-        rel="icon"
-        type="image/svg+xml"
-        href="./favicon.svg"
-    >
+    ./favicon.svg
+
+    <style>
+        html,
+        body,
+        #app {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            overflow: hidden;
+            background: #07111f;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+        }
+
+        #startup-status {
+            position: fixed;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            padding: 32px;
+            text-align: center;
+            background:
+                radial-gradient(
+                    circle at center,
+                    #173a5e 0%,
+                    #07111f 75%
+                );
+        }
+
+        #startup-status h1 {
+            margin: 0 0 12px;
+            color: #70c8ff;
+        }
+
+        #startup-status p {
+            margin: 6px 0;
+            color: #d8eaff;
+        }
+
+        #startup-error {
+            max-width: 900px;
+            color: #ff8a8a;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        canvas {
+            display: block;
+        }
+    </style>
 </head>
 
 <body>
-    <div id="app"></div>
+    <div id="app">
+        <div id="startup-status">
+            <div>
+                <h1>Nova Flight Simulator</h1>
+                <p>Starting simulator...</p>
+                <p id="startup-error"></p>
+            </div>
+        </div>
+    </div>
 
     <noscript>
         JavaScript must be enabled to run this simulator.
     </noscript>
 
-    <script
-        type="module"
-        src="/src/main.js"
-    ></script>
+    <script>
+        window.addEventListener("error", (event) => {
+            const output =
+                document.querySelector("#startup-error");
+
+            if (output) {
+                output.textContent =
+                    `Startup error: ${event.message}`;
+            }
+        });
+
+        window.addEventListener(
+            "unhandledrejection",
+            (event) => {
+                const output =
+                    document.querySelector("#startup-error");
+
+                if (output) {
+                    output.textContent =
+                        `Startup error: ${String(event.reason)}`;
+                }
+            }
+        );
+    </script>
+
+    /src/main.jsscript>
 </body>
 </html>
