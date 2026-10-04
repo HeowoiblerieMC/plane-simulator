@@ -29,6 +29,7 @@ export class Game {
         this.speedMetersPerSecond = 0;
         this.heading = 0;
         this.brakeActive = false;
+        this.cameraMode = "EXTERNAL";
 
         this.forwardVector =
             new THREE.Vector3();
