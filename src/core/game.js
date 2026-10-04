@@ -1,10 +1,16 @@
 import * as THREE from "three";
+
 import {
     createRunways
 } from "../airport/JFK/createrunways.js";
+
 import {
     createRunwayMarkings
 } from "../airport/JFK/createrunwaymarkings.js";
+
+import {
+    createSky172
+} from "../aircraft/general/createsky172.js";
 
 export class Game {
     constructor(container) {
@@ -13,13 +19,15 @@ export class Game {
         this.scene = null;
         this.camera = null;
         this.renderer = null;
+        this.clock = new THREE.Clock();
+
+        this.aircraft = null;
 
         this.animationFrameId = null;
         this.isRunning = false;
 
         this.animate = this.animate.bind(this);
-        this.handleResize =
-            this.handleResize.bind(this);
+        this.handleResize = this.handleResize.bind(this);
     }
 
     start() {
@@ -33,6 +41,7 @@ export class Game {
         this.createLights();
         this.createGround();
         this.createAirport();
+        this.createAircraft();
 
         window.addEventListener(
             "resize",
@@ -40,6 +49,7 @@ export class Game {
         );
 
         this.isRunning = true;
+        this.clock.start();
         this.animate();
 
         console.log(
@@ -73,22 +83,22 @@ export class Game {
 
         this.camera =
             new THREE.PerspectiveCamera(
-                60,
+                55,
                 width / height,
                 0.1,
                 30000
             );
 
         this.camera.position.set(
-            180,
-            110,
-            850
+            18,
+            8,
+            1278
         );
 
         this.camera.lookAt(
             0,
-            0,
-            -250
+            1.7,
+            1242
         );
     }
 
@@ -173,18 +183,23 @@ export class Game {
     }
 
     createGround() {
-        const ground =
-            new THREE.Mesh(
-                new THREE.PlaneGeometry(
-                    20000,
-                    20000
-                ),
-                new THREE.MeshStandardMaterial({
-                    color: 0x557744,
-                    roughness: 1,
-                    metalness: 0
-                })
+        const groundGeometry =
+            new THREE.PlaneGeometry(
+                20000,
+                20000
             );
+
+        const groundMaterial =
+            new THREE.MeshStandardMaterial({
+                color: 0x557744,
+                roughness: 1,
+                metalness: 0
+            });
+
+        const ground = new THREE.Mesh(
+            groundGeometry,
+            groundMaterial
+        );
 
         ground.name = "AirportGround";
         ground.rotation.x =
@@ -199,12 +214,15 @@ export class Game {
             new THREE.GridHelper(
                 5000,
                 100,
-                0x8ca982,
-                0x668866
+                0x73896c,
+                0x5f7659
             );
 
         grid.name = "DevelopmentGrid";
         grid.position.y = 0.005;
+        grid.material.transparent = true;
+        grid.material.opacity = 0.2;
+        grid.material.depthWrite = false;
 
         this.scene.add(grid);
     }
@@ -229,6 +247,44 @@ export class Game {
         this.scene.add(airportGroup);
     }
 
+    createAircraft() {
+        this.aircraft = createSky172();
+
+        this.aircraft.position.set(
+            0,
+            0.12,
+            1250
+        );
+
+        this.aircraft.rotation.set(
+            0,
+            0,
+            0
+        );
+
+        this.scene.add(this.aircraft);
+
+        this.camera.lookAt(
+            this.aircraft.position.x,
+            this.aircraft.position.y + 1.6,
+            this.aircraft.position.z - 8
+        );
+    }
+
+    update(deltaTime) {
+        if (!this.aircraft) {
+            return;
+        }
+
+        const propeller =
+            this.aircraft.userData.propeller;
+
+        if (propeller) {
+            propeller.rotation.z +=
+                deltaTime * 18;
+        }
+    }
+
     animate() {
         if (!this.isRunning) {
             return;
@@ -238,6 +294,13 @@ export class Game {
             window.requestAnimationFrame(
                 this.animate
             );
+
+        const deltaTime = Math.min(
+            this.clock.getDelta(),
+            1 / 20
+        );
+
+        this.update(deltaTime);
 
         this.renderer.render(
             this.scene,
@@ -277,5 +340,26 @@ export class Game {
             height,
             false
         );
+    }
+
+    stop() {
+        if (!this.isRunning) {
+            return;
+        }
+
+        this.isRunning = false;
+
+        if (this.animationFrameId !== null) {
+            window.cancelAnimationFrame(
+                this.animationFrameId
+            );
+        }
+
+        window.removeEventListener(
+            "resize",
+            this.handleResize
+        );
+
+        this.clock.stop();
     }
 }
