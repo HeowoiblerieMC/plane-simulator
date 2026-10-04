@@ -1,21 +1,48 @@
 import * as THREE from "three";
-import { createRunways } from "../airport/JFK/createrunways.js";
-import { createRunwayMarkings } from "../airport/JFK/createrunwaymarkings.js";
-import { createSky172 } from "../aircraft/general/createsky172.js";
+
+import {
+    createRunways
+} from "../airport/JFK/createrunways.js";
+
+import {
+    createRunwayMarkings
+} from "../airport/JFK/createrunwaymarkings.js";
+
+import {
+    createSky172
+} from "../aircraft/general/createsky172.js";
 
 export class Game {
     constructor(container) {
         this.container = container;
+
         this.scene = null;
         this.camera = null;
         this.renderer = null;
         this.aircraft = null;
+
         this.clock = new THREE.Clock();
+
+        this.keys = new Set();
+
+        this.throttle = 0;
+        this.speedMetersPerSecond = 0;
+        this.brakeActive = false;
+
         this.animationFrameId = null;
         this.isRunning = false;
 
-        this.animate = this.animate.bind(this);
-        this.handleResize = this.handleResize.bind(this);
+        this.animate =
+            this.animate.bind(this);
+
+        this.handleResize =
+            this.handleResize.bind(this);
+
+        this.handleKeyDown =
+            this.handleKeyDown.bind(this);
+
+        this.handleKeyUp =
+            this.handleKeyUp.bind(this);
     }
 
     start() {
@@ -30,97 +57,332 @@ export class Game {
         this.createGround();
         this.createAirport();
         this.createAircraft();
-
-        window.addEventListener("resize", this.handleResize);
+        this.bindEvents();
 
         this.isRunning = true;
+
         this.clock.start();
         this.animate();
-    }
 
-    createScene() {
-        this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x87b9e8);
-        this.scene.fog = new THREE.Fog(0x87b9e8, 3000, 12000);
-    }
-
-    createCamera() {
-        const width = Math.max(this.container.clientWidth, 1);
-        const height = Math.max(this.container.clientHeight, 1);
-
-        this.camera = new THREE.PerspectiveCamera(
-            48,
-            width / height,
-            0.25,
-            20000
+        console.log(
+            "Aircraft ground movement test started."
         );
     }
 
+    createScene() {
+        this.scene =
+            new THREE.Scene();
+
+        this.scene.background =
+            new THREE.Color(
+                0x87b9e8
+            );
+
+        this.scene.fog =
+            new THREE.Fog(
+                0x87b9e8,
+                3000,
+                12000
+            );
+    }
+
+    createCamera() {
+        const width = Math.max(
+            this.container.clientWidth,
+            1
+        );
+
+        const height = Math.max(
+            this.container.clientHeight,
+            1
+        );
+
+        this.camera =
+            new THREE.PerspectiveCamera(
+                48,
+                width / height,
+                0.25,
+                20000
+            );
+    }
+
     createRenderer() {
-        document.querySelector("#startup-status")?.remove();
+        document
+            .querySelector(
+                "#startup-status"
+            )
+            ?.remove();
 
-        this.renderer = new THREE.WebGLRenderer({
-            antialias: true,
-            powerPreference: "high-performance"
-        });
+        this.renderer =
+            new THREE.WebGLRenderer({
+                antialias: true,
+                powerPreference:
+                    "high-performance"
+            });
 
-        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        this.renderer.setPixelRatio(
+            Math.min(
+                window.devicePixelRatio,
+                2
+            )
+        );
+
         this.renderer.setSize(
             this.container.clientWidth,
             this.container.clientHeight,
             false
         );
-        this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-        this.renderer.shadowMap.enabled = false;
-        this.container.appendChild(this.renderer.domElement);
+
+        this.renderer.outputColorSpace =
+            THREE.SRGBColorSpace;
+
+        this.renderer.shadowMap.enabled =
+            false;
+
+        this.container.appendChild(
+            this.renderer.domElement
+        );
     }
 
     createLights() {
-        this.scene.add(new THREE.HemisphereLight(0xd9efff, 0x3d5134, 2));
+        const hemisphereLight =
+            new THREE.HemisphereLight(
+                0xd9efff,
+                0x3d5134,
+                2
+            );
 
-        const sunlight = new THREE.DirectionalLight(0xffffff, 2.4);
-        sunlight.position.set(900, 1400, 700);
+        this.scene.add(
+            hemisphereLight
+        );
+
+        const sunlight =
+            new THREE.DirectionalLight(
+                0xffffff,
+                2.4
+            );
+
+        sunlight.position.set(
+            900,
+            1400,
+            700
+        );
+
         sunlight.castShadow = false;
-        this.scene.add(sunlight);
+
+        this.scene.add(
+            sunlight
+        );
     }
 
     createGround() {
-        const ground = new THREE.Mesh(
-            new THREE.PlaneGeometry(20000, 20000),
-            new THREE.MeshStandardMaterial({
-                color: 0x557744,
-                roughness: 1,
-                metalness: 0
-            })
-        );
-        ground.rotation.x = -Math.PI / 2;
+        const ground =
+            new THREE.Mesh(
+                new THREE.PlaneGeometry(
+                    20000,
+                    20000
+                ),
+                new THREE.MeshStandardMaterial({
+                    color: 0x557744,
+                    roughness: 1,
+                    metalness: 0
+                })
+            );
+
+        ground.name =
+            "AirportGround";
+
+        ground.rotation.x =
+            -Math.PI / 2;
+
         ground.position.y = -0.08;
-        this.scene.add(ground);
+
+        this.scene.add(
+            ground
+        );
     }
 
     createAirport() {
-        const airport = new THREE.Group();
-        airport.add(createRunways(), createRunwayMarkings());
-        this.scene.add(airport);
+        const airport =
+            new THREE.Group();
+
+        airport.name =
+            "JFKAirport";
+
+        airport.add(
+            createRunways(),
+            createRunwayMarkings()
+        );
+
+        this.scene.add(
+            airport
+        );
     }
 
     createAircraft() {
-        this.aircraft = createSky172();
-        this.aircraft.position.set(0, 0.12, 1250);
-        this.aircraft.rotation.set(0, 0, 0);
-        this.scene.add(this.aircraft);
+        this.aircraft =
+            createSky172();
+
+        this.aircraft.position.set(
+            0,
+            0.12,
+            1250
+        );
+
+        this.aircraft.rotation.set(
+            0,
+            0,
+            0
+        );
+
+        this.scene.add(
+            this.aircraft
+        );
 
         this.updateCamera();
     }
 
+    bindEvents() {
+        window.addEventListener(
+            "resize",
+            this.handleResize
+        );
+
+        window.addEventListener(
+            "keydown",
+            this.handleKeyDown
+        );
+
+        window.addEventListener(
+            "keyup",
+            this.handleKeyUp
+        );
+    }
+
+    handleKeyDown(event) {
+        const controlledKeys = [
+            "KeyW",
+            "KeyS",
+            "ArrowUp",
+            "ArrowDown",
+            "Space"
+        ];
+
+        if (
+            controlledKeys.includes(
+                event.code
+            )
+        ) {
+            event.preventDefault();
+        }
+
+        this.keys.add(
+            event.code
+        );
+    }
+
+    handleKeyUp(event) {
+        this.keys.delete(
+            event.code
+        );
+    }
+
+    updateControls(deltaTime) {
+        const throttleUp =
+            this.keys.has("KeyW") ||
+            this.keys.has("ArrowUp");
+
+        const throttleDown =
+            this.keys.has("KeyS") ||
+            this.keys.has("ArrowDown");
+
+        this.brakeActive =
+            this.keys.has("Space");
+
+        const throttleRate = 0.45;
+
+        if (throttleUp) {
+            this.throttle +=
+                throttleRate *
+                deltaTime;
+        }
+
+        if (throttleDown) {
+            this.throttle -=
+                throttleRate *
+                deltaTime;
+        }
+
+        this.throttle =
+            THREE.MathUtils.clamp(
+                this.throttle,
+                0,
+                1
+            );
+    }
+
+    updateGroundMovement(deltaTime) {
+        const maximumSpeed = 40;
+
+        const engineAcceleration =
+            this.throttle * 4.5;
+
+        const rollingResistance =
+            this.speedMetersPerSecond > 0
+                ? 0.55
+                : 0;
+
+        const aerodynamicDrag =
+            0.0025 *
+            this.speedMetersPerSecond *
+            this.speedMetersPerSecond;
+
+        const brakeDeceleration =
+            this.brakeActive
+                ? 10
+                : 0;
+
+        const acceleration =
+            engineAcceleration -
+            rollingResistance -
+            aerodynamicDrag -
+            brakeDeceleration;
+
+        this.speedMetersPerSecond +=
+            acceleration *
+            deltaTime;
+
+        this.speedMetersPerSecond =
+            THREE.MathUtils.clamp(
+                this.speedMetersPerSecond,
+                0,
+                maximumSpeed
+            );
+
+        this.aircraft.position.z -=
+            this.speedMetersPerSecond *
+            deltaTime;
+
+        this.aircraft.position.x = 0;
+        this.aircraft.position.y = 0.12;
+    }
+
     updateCamera() {
-        if (!this.aircraft || !this.camera) {
+        if (
+            !this.aircraft ||
+            !this.camera
+        ) {
             return;
         }
 
-        const x = this.aircraft.position.x;
-        const y = this.aircraft.position.y;
-        const z = this.aircraft.position.z;
+        const x =
+            this.aircraft.position.x;
+
+        const y =
+            this.aircraft.position.y;
+
+        const z =
+            this.aircraft.position.z;
 
         this.camera.position.set(
             x,
@@ -128,7 +390,11 @@ export class Game {
             z + 38
         );
 
-        this.camera.up.set(0, 1, 0);
+        this.camera.up.set(
+            0,
+            1,
+            0
+        );
 
         this.camera.lookAt(
             x,
@@ -136,15 +402,51 @@ export class Game {
             z - 2
         );
 
-        this.camera.updateMatrixWorld(true);
+        this.camera.updateMatrixWorld(
+            true
+        );
     }
 
     updatePropeller(deltaTime) {
-        const propeller = this.aircraft?.userData.propeller;
+        const propeller =
+            this.aircraft?.userData
+                .propeller;
 
-        if (propeller) {
-            propeller.rotation.z += deltaTime * 8;
+        if (!propeller) {
+            return;
         }
+
+        const idleSpeed = 5;
+
+        const throttleSpeed =
+            this.throttle * 70;
+
+        propeller.rotation.z +=
+            (
+                idleSpeed +
+                throttleSpeed
+            ) *
+            deltaTime;
+    }
+
+    update(deltaTime) {
+        if (!this.aircraft) {
+            return;
+        }
+
+        this.updateControls(
+            deltaTime
+        );
+
+        this.updateGroundMovement(
+            deltaTime
+        );
+
+        this.updatePropeller(
+            deltaTime
+        );
+
+        this.updateCamera();
     }
 
     animate() {
@@ -152,25 +454,94 @@ export class Game {
             return;
         }
 
-        this.animationFrameId = window.requestAnimationFrame(this.animate);
+        this.animationFrameId =
+            window.requestAnimationFrame(
+                this.animate
+            );
 
-        const deltaTime = Math.min(this.clock.getDelta(), 1 / 20);
-        this.updatePropeller(deltaTime);
-        this.updateCamera();
-        this.renderer.render(this.scene, this.camera);
+        const deltaTime = Math.min(
+            this.clock.getDelta(),
+            1 / 20
+        );
+
+        this.update(
+            deltaTime
+        );
+
+        this.renderer.render(
+            this.scene,
+            this.camera
+        );
     }
 
     handleResize() {
-        if (!this.camera || !this.renderer) {
+        if (
+            !this.camera ||
+            !this.renderer
+        ) {
             return;
         }
 
-        const width = Math.max(this.container.clientWidth, 1);
-        const height = Math.max(this.container.clientHeight, 1);
+        const width = Math.max(
+            this.container.clientWidth,
+            1
+        );
 
-        this.camera.aspect = width / height;
+        const height = Math.max(
+            this.container.clientHeight,
+            1
+        );
+
+        this.camera.aspect =
+            width / height;
+
         this.camera.updateProjectionMatrix();
-        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        this.renderer.setSize(width, height, false);
+
+        this.renderer.setPixelRatio(
+            Math.min(
+                window.devicePixelRatio,
+                2
+            )
+        );
+
+        this.renderer.setSize(
+            width,
+            height,
+            false
+        );
+    }
+
+    stop() {
+        if (!this.isRunning) {
+            return;
+        }
+
+        this.isRunning = false;
+
+        if (
+            this.animationFrameId !== null
+        ) {
+            window.cancelAnimationFrame(
+                this.animationFrameId
+            );
+        }
+
+        window.removeEventListener(
+            "resize",
+            this.handleResize
+        );
+
+        window.removeEventListener(
+            "keydown",
+            this.handleKeyDown
+        );
+
+        window.removeEventListener(
+            "keyup",
+            this.handleKeyUp
+        );
+
+        this.keys.clear();
+        this.clock.stop();
     }
 }
