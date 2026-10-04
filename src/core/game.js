@@ -1,4 +1,10 @@
 import * as THREE from "three";
+import {
+    createRunways
+} from "../airport/JFK/createrunways.js";
+import {
+    createRunwayMarkings
+} from "../airport/JFK/createrunwaymarkings.js";
 
 export class Game {
     constructor(container) {
@@ -12,7 +18,8 @@ export class Game {
         this.isRunning = false;
 
         this.animate = this.animate.bind(this);
-        this.handleResize = this.handleResize.bind(this);
+        this.handleResize =
+            this.handleResize.bind(this);
     }
 
     start() {
@@ -25,6 +32,7 @@ export class Game {
         this.createRenderer();
         this.createLights();
         this.createGround();
+        this.createAirport();
 
         window.addEventListener(
             "resize",
@@ -47,8 +55,8 @@ export class Game {
 
         this.scene.fog = new THREE.Fog(
             0x87b9e8,
-            1200,
-            10000
+            3500,
+            15000
         );
     }
 
@@ -68,16 +76,20 @@ export class Game {
                 60,
                 width / height,
                 0.1,
-                20000
+                30000
             );
 
         this.camera.position.set(
-            100,
-            70,
-            140
+            180,
+            110,
+            850
         );
 
-        this.camera.lookAt(0, 0, 0);
+        this.camera.lookAt(
+            0,
+            0,
+            -250
+        );
     }
 
     createRenderer() {
@@ -134,16 +146,28 @@ export class Game {
         const sunlight =
             new THREE.DirectionalLight(
                 0xffffff,
-                2.5
+                2.4
             );
 
         sunlight.position.set(
-            500,
             900,
-            400
+            1400,
+            700
         );
 
         sunlight.castShadow = true;
+
+        sunlight.shadow.mapSize.set(
+            2048,
+            2048
+        );
+
+        sunlight.shadow.camera.left = -2200;
+        sunlight.shadow.camera.right = 2200;
+        sunlight.shadow.camera.top = 2200;
+        sunlight.shadow.camera.bottom = -2200;
+        sunlight.shadow.camera.near = 1;
+        sunlight.shadow.camera.far = 5000;
 
         this.scene.add(sunlight);
     }
@@ -152,50 +176,57 @@ export class Game {
         const ground =
             new THREE.Mesh(
                 new THREE.PlaneGeometry(
-                    10000,
-                    10000
+                    20000,
+                    20000
                 ),
                 new THREE.MeshStandardMaterial({
                     color: 0x557744,
-                    roughness: 1
+                    roughness: 1,
+                    metalness: 0
                 })
             );
 
+        ground.name = "AirportGround";
         ground.rotation.x =
             -Math.PI / 2;
 
+        ground.position.y = -0.01;
         ground.receiveShadow = true;
 
         this.scene.add(ground);
 
         const grid =
             new THREE.GridHelper(
-                2000,
+                5000,
                 100,
-                0xffffff,
+                0x8ca982,
                 0x668866
             );
 
-        grid.position.y = 0.02;
+        grid.name = "DevelopmentGrid";
+        grid.position.y = 0.005;
 
         this.scene.add(grid);
+    }
 
-        const marker =
-            new THREE.Mesh(
-                new THREE.BoxGeometry(
-                    20,
-                    20,
-                    20
-                ),
-                new THREE.MeshStandardMaterial({
-                    color: 0xffc107
-                })
-            );
+    createAirport() {
+        const airportGroup =
+            new THREE.Group();
 
-        marker.position.y = 10;
-        marker.castShadow = true;
+        airportGroup.name = "JFKAirport";
 
-        this.scene.add(marker);
+        const runways =
+            createRunways();
+
+        const runwayMarkings =
+            createRunwayMarkings();
+
+        airportGroup.add(
+            runways,
+            runwayMarkings
+        );
+
+        this.scene.add(airportGroup);
     }
 
     animate() {
@@ -233,6 +264,13 @@ export class Game {
             width / height;
 
         this.camera.updateProjectionMatrix();
+
+        this.renderer.setPixelRatio(
+            Math.min(
+                window.devicePixelRatio,
+                2
+            )
+        );
 
         this.renderer.setSize(
             width,
