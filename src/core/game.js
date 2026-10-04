@@ -132,7 +132,7 @@ export class Game {
 
         this.camera.lookAt(
             x,
-            y + 2.0,
+            y + 3.2,
             z - 2
         );
 
