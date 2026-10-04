@@ -229,16 +229,72 @@ export class Game {
     }
 
     updateCamera() {
-        if (!this.aircraft || !this.camera) return;
-        const cockpitMode = this.cameraMode === "COCKPIT";
-        const mount = cockpitMode ? this.aircraft.userData.cockpitCameraMount : this.aircraft.userData.chaseCameraMount;
-        const target = cockpitMode ? this.aircraft.userData.cockpitLookTarget : this.aircraft.userData.chaseLookTarget;
-        if (!mount || !target) return;
+        if (!this.aircraft || !this.camera) {
+            return;
+        }
+
+        if (this.cameraMode === "COCKPIT") {
+            this.updateCockpitCamera();
+            return;
+        }
+
+        this.updateExternalCamera();
+    }
+
+    updateExternalCamera() {
+        if (!this.flightState.airborne) {
+            this.cameraPosition.set(
+                0,
+                this.aircraft.position.y + 5.2,
+                this.aircraft.position.z + 16
+            );
+
+            this.cameraTarget.set(
+                0,
+                this.aircraft.position.y + 1.7,
+                this.aircraft.position.z - 30
+            );
+        } else {
+            this.forwardVector.set(
+                -Math.sin(this.flightState.heading),
+                0,
+                -Math.cos(this.flightState.heading)
+            );
+
+            this.cameraPosition
+                .copy(this.aircraft.position)
+                .addScaledVector(this.forwardVector, -18);
+
+            this.cameraPosition.y += 5.5;
+
+            this.cameraTarget
+                .copy(this.aircraft.position)
+                .addScaledVector(this.forwardVector, 15);
+
+            this.cameraTarget.y += 1.8;
+        }
+
+        this.camera.position.copy(this.cameraPosition);
+        this.camera.up.set(0, 1, 0);
+        this.camera.lookAt(this.cameraTarget);
+    }
+
+    updateCockpitCamera() {
+        const mount = this.aircraft.userData.cockpitCameraMount;
+        const target = this.aircraft.userData.cockpitLookTarget;
+
+        if (!mount || !target) {
+            return;
+        }
+
         this.aircraft.updateMatrixWorld(true);
         mount.getWorldPosition(this.cameraPosition);
         target.getWorldPosition(this.cameraTarget);
+
         this.camera.position.copy(this.cameraPosition);
-        this.camera.up.set(0, 1, 0).applyQuaternion(cockpitMode ? this.aircraft.quaternion : new THREE.Quaternion());
+        this.camera.up.set(0, 1, 0).applyQuaternion(
+            this.aircraft.quaternion
+        );
         this.camera.lookAt(this.cameraTarget);
     }
 
