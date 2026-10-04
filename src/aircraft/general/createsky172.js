@@ -1,420 +1,240 @@
 import * as THREE from "three";
 
-function createMaterial(
-    color,
-    roughness = 0.65,
-    metalness = 0
-) {
-    return new THREE.MeshStandardMaterial({
-        color,
-        roughness,
-        metalness
-    });
+function material(color, roughness = 0.65, metalness = 0) {
+    return new THREE.MeshStandardMaterial({ color, roughness, metalness });
 }
 
-function createFuselage() {
-    const fuselage = new THREE.Mesh(
-        new THREE.CylinderGeometry(
-            0.78,
-            0.58,
-            5.8,
-            24
-        ),
-        createMaterial(0xf5f7fa, 0.5)
+function box(name, size, position, color, parent, rotation = [0, 0, 0]) {
+    const mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(...size),
+        material(color)
+    );
+    mesh.name = name;
+    mesh.position.set(...position);
+    mesh.rotation.set(...rotation);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    parent.add(mesh);
+    return mesh;
+}
+
+function cylinder(name, radii, height, position, color, parent, rotation = [0, 0, 0]) {
+    const mesh = new THREE.Mesh(
+        new THREE.CylinderGeometry(radii[0], radii[1], height, 24),
+        material(color, 0.55)
+    );
+    mesh.name = name;
+    mesh.position.set(...position);
+    mesh.rotation.set(...rotation);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    parent.add(mesh);
+    return mesh;
+}
+
+function createAircraftBody(aircraft) {
+    cylinder(
+        "Fuselage",
+        [0.72, 0.58],
+        5.8,
+        [0, 1.55, 0],
+        0xf3f5f7,
+        aircraft,
+        [Math.PI / 2, 0, 0]
     );
 
-    fuselage.name = "Fuselage";
-    fuselage.rotation.x = Math.PI / 2;
-    fuselage.position.set(0, 1.55, 0);
-    fuselage.castShadow = true;
-    fuselage.receiveShadow = true;
-
-    return fuselage;
-}
-
-function createNose() {
     const nose = new THREE.Mesh(
-        new THREE.SphereGeometry(
-            0.79,
-            24,
-            16
-        ),
-        createMaterial(0xf5f7fa, 0.45)
+        new THREE.SphereGeometry(0.74, 24, 16),
+        material(0xf3f5f7, 0.5)
     );
-
     nose.name = "Nose";
-    nose.scale.set(1, 0.93, 1.35);
-    nose.position.set(0, 1.55, -3);
+    nose.scale.set(1, 0.92, 1.35);
+    nose.position.set(0, 1.55, -3.05);
     nose.castShadow = true;
+    aircraft.add(nose);
 
-    return nose;
-}
-
-function createRearFuselage() {
-    const rearFuselage = new THREE.Mesh(
-        new THREE.ConeGeometry(
-            0.58,
-            3.4,
-            20
-        ),
-        createMaterial(0xf5f7fa, 0.55)
+    const tailCone = new THREE.Mesh(
+        new THREE.ConeGeometry(0.56, 3.5, 20),
+        material(0xf3f5f7, 0.55)
     );
+    tailCone.name = "TailCone";
+    tailCone.rotation.x = -Math.PI / 2;
+    tailCone.position.set(0, 1.6, 4.5);
+    tailCone.castShadow = true;
+    aircraft.add(tailCone);
 
-    rearFuselage.name = "RearFuselage";
-    rearFuselage.rotation.x = -Math.PI / 2;
-    rearFuselage.position.set(0, 1.62, 4.45);
-    rearFuselage.castShadow = true;
-
-    return rearFuselage;
-}
-
-function createCockpit() {
-    const cockpitMaterial =
+    const canopy = new THREE.Mesh(
+        new THREE.SphereGeometry(0.78, 24, 16),
         new THREE.MeshStandardMaterial({
-            color: 0x18344f,
-            roughness: 0.25,
-            metalness: 0.05,
+            color: 0x16344d,
+            roughness: 0.2,
             transparent: true,
-            opacity: 0.9
-        });
-
-    const cockpit = new THREE.Mesh(
-        new THREE.SphereGeometry(
-            0.82,
-            24,
-            16
-        ),
-        cockpitMaterial
-    );
-
-    cockpit.name = "Cockpit";
-    cockpit.scale.set(0.92, 0.68, 1.25);
-    cockpit.position.set(0, 2.1, -1.25);
-    cockpit.castShadow = true;
-
-    return cockpit;
-}
-
-function createMainWing() {
-    const wing = new THREE.Mesh(
-        new THREE.BoxGeometry(
-            10.8,
-            0.16,
-            1.45
-        ),
-        createMaterial(0xe7ebef, 0.6)
-    );
-
-    wing.name = "MainWing";
-    wing.position.set(0, 2.05, 0.15);
-    wing.rotation.x = THREE.MathUtils.degToRad(1.5);
-    wing.castShadow = true;
-    wing.receiveShadow = true;
-
-    return wing;
-}
-
-function createWingStrut(
-    xPosition,
-    rotationZ
-) {
-    const strut = new THREE.Mesh(
-        new THREE.CylinderGeometry(
-            0.055,
-            0.055,
-            2.55,
-            10
-        ),
-        createMaterial(0xd0d5da, 0.6, 0.1)
-    );
-
-    strut.name = "WingStrut";
-    strut.position.set(
-        xPosition,
-        1.22,
-        0.25
-    );
-
-    strut.rotation.z = rotationZ;
-    strut.castShadow = true;
-
-    return strut;
-}
-
-function createHorizontalTail() {
-    const tail = new THREE.Mesh(
-        new THREE.BoxGeometry(
-            4.2,
-            0.12,
-            0.9
-        ),
-        createMaterial(0xe7ebef, 0.6)
-    );
-
-    tail.name = "HorizontalTail";
-    tail.position.set(0, 1.72, 4.82);
-    tail.castShadow = true;
-
-    return tail;
-}
-
-function createVerticalTail() {
-    const geometry = new THREE.BufferGeometry();
-
-    const vertices = new Float32Array([
-        0, 0, 0,
-        0, 2.25, 0.8,
-        0, 0, 1.5,
-
-        0.12, 0, 0,
-        0.12, 0, 1.5,
-        0.12, 2.25, 0.8
-    ]);
-
-    geometry.setAttribute(
-        "position",
-        new THREE.BufferAttribute(
-            vertices,
-            3
-        )
-    );
-
-    geometry.computeVertexNormals();
-
-    const tail = new THREE.Mesh(
-        geometry,
-        createMaterial(0x1d5f99, 0.5)
-    );
-
-    tail.name = "VerticalTail";
-    tail.position.set(-0.06, 1.72, 4.15);
-    tail.castShadow = true;
-
-    return tail;
-}
-
-function createPropeller() {
-    const propellerGroup =
-        new THREE.Group();
-
-    propellerGroup.name = "Propeller";
-
-    const hub = new THREE.Mesh(
-        new THREE.SphereGeometry(
-            0.22,
-            16,
-            12
-        ),
-        createMaterial(0xaeb6bf, 0.35, 0.45)
-    );
-
-    hub.scale.z = 1.8;
-    hub.position.z = -3.92;
-    hub.castShadow = true;
-
-    propellerGroup.add(hub);
-
-    const bladeMaterial =
-        createMaterial(0x20252a, 0.5);
-
-    const upperBlade = new THREE.Mesh(
-        new THREE.BoxGeometry(
-            0.14,
-            1.65,
-            0.08
-        ),
-        bladeMaterial
-    );
-
-    upperBlade.position.set(
-        0,
-        0.74,
-        -4.05
-    );
-
-    upperBlade.rotation.z =
-        THREE.MathUtils.degToRad(6);
-
-    upperBlade.castShadow = true;
-
-    propellerGroup.add(upperBlade);
-
-    const lowerBlade =
-        upperBlade.clone();
-
-    lowerBlade.position.y = -0.74;
-    lowerBlade.rotation.z =
-        THREE.MathUtils.degToRad(186);
-
-    propellerGroup.add(lowerBlade);
-
-    propellerGroup.position.y = 1.55;
-
-    return propellerGroup;
-}
-
-function createWheelAssembly(
-    x,
-    y,
-    z,
-    wheelRadius
-) {
-    const wheelGroup =
-        new THREE.Group();
-
-    wheelGroup.name = "LandingGear";
-
-    const strut = new THREE.Mesh(
-        new THREE.CylinderGeometry(
-            0.045,
-            0.045,
-            0.75,
-            10
-        ),
-        createMaterial(0xbfc5ca, 0.45, 0.5)
-    );
-
-    strut.position.set(
-        x,
-        y + 0.35,
-        z
-    );
-
-    strut.castShadow = true;
-
-    wheelGroup.add(strut);
-
-    const wheel = new THREE.Mesh(
-        new THREE.TorusGeometry(
-            wheelRadius,
-            wheelRadius * 0.34,
-            10,
-            20
-        ),
-        createMaterial(0x17191c, 0.9)
-    );
-
-    wheel.position.set(x, y, z);
-    wheel.rotation.y = Math.PI / 2;
-    wheel.castShadow = true;
-
-    wheelGroup.add(wheel);
-
-    return wheelGroup;
-}
-
-function createNavigationLight(
-    color,
-    x,
-    y,
-    z
-) {
-    const lightGroup =
-        new THREE.Group();
-
-    const lens = new THREE.Mesh(
-        new THREE.SphereGeometry(
-            0.12,
-            12,
-            8
-        ),
-        new THREE.MeshBasicMaterial({
-            color
+            opacity: 0.88
         })
     );
+    canopy.name = "ExteriorCanopy";
+    canopy.scale.set(0.94, 0.65, 1.3);
+    canopy.position.set(0, 2.08, -1.15);
+    aircraft.add(canopy);
 
-    lens.position.set(x, y, z);
+    box("MainWing", [10.8, 0.16, 1.5], [0, 2.02, 0.05], 0xe8ebee, aircraft);
+    box("HorizontalTail", [4.2, 0.12, 0.9], [0, 1.72, 4.75], 0xe8ebee, aircraft);
+    box("VerticalTail", [0.16, 2.1, 1.25], [0, 2.55, 4.35], 0x1d5f99, aircraft, [0.18, 0, 0]);
+}
 
-    const glow = new THREE.PointLight(
-        color,
-        1.2,
-        8,
-        2
+function createLandingGear(aircraft) {
+    const wheelMaterial = material(0x17191c, 0.95);
+    const strutMaterial = material(0xbfc5ca, 0.4, 0.45);
+
+    for (const [x, y, z, radius] of [
+        [-1.18, 0.38, 0.55, 0.3],
+        [1.18, 0.38, 0.55, 0.3],
+        [0, 0.32, -2.45, 0.22]
+    ]) {
+        const strut = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.045, 0.045, 0.72, 10),
+            strutMaterial
+        );
+        strut.position.set(x, y + 0.35, z);
+        strut.castShadow = true;
+        aircraft.add(strut);
+
+        const wheel = new THREE.Mesh(
+            new THREE.TorusGeometry(radius, radius * 0.34, 10, 20),
+            wheelMaterial
+        );
+        wheel.position.set(x, y, z);
+        wheel.rotation.y = Math.PI / 2;
+        wheel.castShadow = true;
+        aircraft.add(wheel);
+    }
+}
+
+function createPropeller(aircraft) {
+    const propeller = new THREE.Group();
+    propeller.name = "Propeller";
+    propeller.position.set(0, 1.55, -3.9);
+
+    const hub = new THREE.Mesh(
+        new THREE.SphereGeometry(0.22, 16, 12),
+        material(0xaeb6bf, 0.35, 0.5)
     );
+    hub.scale.z = 1.6;
+    propeller.add(hub);
 
-    glow.position.set(x, y, z);
+    const bladeMaterial = material(0x20252a, 0.5);
+    for (const angle of [0, Math.PI]) {
+        const blade = new THREE.Mesh(
+            new THREE.BoxGeometry(0.14, 1.65, 0.08),
+            bladeMaterial
+        );
+        blade.position.y = angle === 0 ? 0.74 : -0.74;
+        blade.rotation.z = angle + THREE.MathUtils.degToRad(6);
+        blade.castShadow = true;
+        propeller.add(blade);
+    }
 
-    lightGroup.add(lens, glow);
+    aircraft.add(propeller);
+    return propeller;
+}
 
-    return lightGroup;
+function createCockpit(cockpit) {
+    const shell = material(0x24272b, 0.85);
+    const trim = material(0x111317, 0.8);
+    const panelMaterial = material(0x181a1e, 0.82);
+
+    box("CockpitRoof", [4.7, 0.28, 2.1], [0, 3.35, -0.4], 0x2a2d31, cockpit);
+    box("CockpitLeftSide", [0.32, 2.7, 4.2], [-2.25, 1.85, -0.4], 0x2d3034, cockpit);
+    box("CockpitRightSide", [0.32, 2.7, 4.2], [2.25, 1.85, -0.4], 0x2d3034, cockpit);
+    box("LeftPillar", [0.3, 3.1, 0.35], [-1.95, 2.3, -2.15], 0x25282c, cockpit, [0, 0, -0.1]);
+    box("RightPillar", [0.3, 3.1, 0.35], [1.95, 2.3, -2.15], 0x25282c, cockpit, [0, 0, 0.1]);
+    box("CenterPost", [0.16, 2.55, 0.22], [0, 2.35, -2.22], 0x202327, cockpit);
+
+    const panel = box("InstrumentPanel", [4.0, 1.45, 0.48], [0, 1.55, -2.0], 0x191b1f, cockpit, [-0.12, 0, 0]);
+    panel.material = panelMaterial;
+    box("PanelBrow", [4.18, 0.28, 0.75], [0, 2.28, -1.88], 0x111317, cockpit);
+    box("CenterConsole", [0.72, 1.05, 2.3], [0, 0.82, -0.95], 0x202328, cockpit, [-0.18, 0, 0]);
+
+    const displayColors = [0x1ca7ec, 0x0b5fa5];
+    for (const [x, color] of [[-0.85, displayColors[0]], [0.85, displayColors[1]]]) {
+        const screen = box("GlassDisplay", [1.25, 0.82, 0.05], [x, 1.68, -2.27], color, cockpit, [-0.12, 0, 0]);
+        screen.material = new THREE.MeshBasicMaterial({ color });
+    }
+
+    for (const x of [-1.55, 0, 1.55]) {
+        const gauge = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.25, 0.25, 0.05, 24),
+            new THREE.MeshBasicMaterial({ color: 0x172c3b })
+        );
+        gauge.rotation.x = Math.PI / 2;
+        gauge.position.set(x, 1.0, -2.25);
+        cockpit.add(gauge);
+    }
+
+    for (const x of [-0.9, 0.9]) {
+        const yoke = new THREE.Group();
+        yoke.name = x < 0 ? "LeftYoke" : "RightYoke";
+        cylinder("YokeColumn", [0.055, 0.055], 0.78, [x, 1.0, -1.5], 0x15171a, yoke, [Math.PI / 2, 0, 0]);
+        box("YokeBar", [0.85, 0.12, 0.12], [x, 1.18, -1.9], 0x111316, yoke);
+        box("YokeLeftGrip", [0.14, 0.58, 0.14], [x - 0.35, 1.05, -1.9], 0x111316, yoke, [0, 0, -0.18]);
+        box("YokeRightGrip", [0.14, 0.58, 0.14], [x + 0.35, 1.05, -1.9], 0x111316, yoke, [0, 0, 0.18]);
+        cockpit.add(yoke);
+    }
+
+    box("LeftSeat", [1.25, 0.35, 1.55], [-0.9, 0.35, 0.55], 0x32363b, cockpit);
+    box("RightSeat", [1.25, 0.35, 1.55], [0.9, 0.35, 0.55], 0x32363b, cockpit);
+    box("LeftSeatBack", [1.25, 1.6, 0.3], [-0.9, 1.1, 1.2], 0x32363b, cockpit, [-0.12, 0, 0]);
+    box("RightSeatBack", [1.25, 1.6, 0.3], [0.9, 1.1, 1.2], 0x32363b, cockpit, [-0.12, 0, 0]);
+
+    const throttle = cylinder("ThrottleLever", [0.055, 0.055], 0.65, [-0.15, 1.05, -0.55], 0x202327, cockpit, [0.35, 0, 0]);
+    throttle.material = trim;
+    const mixture = cylinder("MixtureLever", [0.055, 0.055], 0.65, [0.15, 1.05, -0.55], 0x9f1f20, cockpit, [0.35, 0, 0]);
+    mixture.material = material(0xb3262a, 0.5);
+
+    const chaseMount = new THREE.Object3D();
+    chaseMount.name = "ChaseCameraMount";
+    chaseMount.position.set(0, 5.8, 18);
+    cockpit.add(chaseMount);
+
+    const chaseTarget = new THREE.Object3D();
+    chaseTarget.name = "ChaseLookTarget";
+    chaseTarget.position.set(0, 1.9, -6);
+    cockpit.add(chaseTarget);
+
+    const cockpitMount = new THREE.Object3D();
+    cockpitMount.name = "CockpitCameraMount";
+    cockpitMount.position.set(0, 2.55, -0.7);
+    cockpit.add(cockpitMount);
+
+    const cockpitTarget = new THREE.Object3D();
+    cockpitTarget.name = "CockpitLookTarget";
+    cockpitTarget.position.set(0, 2.45, -50);
+    cockpit.add(cockpitTarget);
 }
 
 export function createSky172() {
-    const aircraft =
-        new THREE.Group();
-
+    const aircraft = new THREE.Group();
     aircraft.name = "NovaSky172";
 
-    aircraft.add(
-        createFuselage(),
-        createNose(),
-        createRearFuselage(),
-        createCockpit(),
-        createMainWing(),
-        createHorizontalTail(),
-        createVerticalTail(),
-        createPropeller()
-    );
+    createAircraftBody(aircraft);
+    createLandingGear(aircraft);
+    const propeller = createPropeller(aircraft);
 
-    aircraft.add(
-        createWingStrut(
-            -2.05,
-            THREE.MathUtils.degToRad(-57)
-        ),
-        createWingStrut(
-            2.05,
-            THREE.MathUtils.degToRad(57)
-        )
-    );
-
-    aircraft.add(
-        createWheelAssembly(
-            -1.18,
-            0.38,
-            0.55,
-            0.3
-        ),
-        createWheelAssembly(
-            1.18,
-            0.38,
-            0.55,
-            0.3
-        ),
-        createWheelAssembly(
-            0,
-            0.32,
-            -2.48,
-            0.22
-        )
-    );
-
-    aircraft.add(
-        createNavigationLight(
-            0xff2020,
-            -5.45,
-            2.06,
-            0.15
-        ),
-        createNavigationLight(
-            0x20ff40,
-            5.45,
-            2.06,
-            0.15
-        )
-    );
+    const cockpit = new THREE.Group();
+    cockpit.name = "CockpitInterior";
+    createCockpit(cockpit);
+    aircraft.add(cockpit);
 
     aircraft.userData = {
         aircraftId: "sky172",
         displayName: "Nova Sky 172",
         aircraftType: "FIXED_WING",
-        forwardDirection: new THREE.Vector3(
-            0,
-            0,
-            -1
-        ),
-        propeller: aircraft.getObjectByName(
-            "Propeller"
-        )
+        propeller,
+        cockpit,
+        chaseCameraMount: aircraft.getObjectByName("ChaseCameraMount"),
+        chaseLookTarget: aircraft.getObjectByName("ChaseLookTarget"),
+        cockpitCameraMount: aircraft.getObjectByName("CockpitCameraMount"),
+        cockpitLookTarget: aircraft.getObjectByName("CockpitLookTarget")
     };
 
     return aircraft;
