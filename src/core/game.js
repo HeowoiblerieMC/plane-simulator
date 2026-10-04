@@ -18,19 +18,27 @@ export class Game {
             throttleDown: false,
             turnLeft: false,
             turnRight: false,
+            pitchUp: false,
+            pitchDown: false,
             brake: false
         };
 
-        this.throttle = 0;
-        this.speedMetersPerSecond = 0;
-        this.heading = 0;
-        this.brakeActive = false;
-        this.cameraMode = "EXTERNAL";
+        this.flightState = {
+            throttle: 0,
+            speedMetersPerSecond: 0,
+            verticalSpeed: 0,
+            altitudeMeters: 0,
+            heading: 0,
+            pitch: 0,
+            roll: 0,
+            brakeActive: false,
+            airborne: false
+        };
 
+        this.cameraMode = "EXTERNAL";
         this.forwardVector = new THREE.Vector3();
         this.cameraPosition = new THREE.Vector3();
         this.cameraTarget = new THREE.Vector3();
-        this.cameraUp = new THREE.Vector3();
 
         this.hudRoot = null;
         this.hudValues = {};
@@ -150,14 +158,15 @@ export class Game {
         this.scene.add(this.aircraft);
 
         this.updateDirection();
+        this.updateAircraftRotation();
         this.updateCamera();
     }
 
     createHUD() {
         this.hudRoot?.remove();
-
         this.hudRoot = document.createElement("div");
         this.hudRoot.id = "flight-hud";
+
         Object.assign(this.hudRoot.style, {
             position: "fixed",
             inset: "0",
@@ -169,18 +178,21 @@ export class Game {
         });
 
         this.hudRoot.innerHTML = `
-            <div id="hud-panel" style="position:absolute;top:14px;right:14px;width:230px;padding:12px 14px;border:1px solid rgba(112,200,255,.65);border-radius:10px;background:rgba(5,18,32,.82);backdrop-filter:blur(6px);box-shadow:0 8px 24px rgba(0,0,0,.25);font-family:Consolas,monospace;font-size:12px;">
+            <div style="position:absolute;top:14px;right:14px;width:238px;padding:12px 14px;border:1px solid rgba(112,200,255,.65);border-radius:10px;background:rgba(5,18,32,.82);backdrop-filter:blur(6px);box-shadow:0 8px 24px rgba(0,0,0,.25);font-family:Consolas,monospace;font-size:12px;">
                 <div style="margin-bottom:8px;color:#70c8ff;font-weight:700;letter-spacing:.14em;text-align:center;">NOVA FLIGHT</div>
-                <div style="display:flex;justify-content:space-between;padding:3px 0;"><span style="color:#8da9bb;">TIME ET</span><strong id="hud-time">00:00:00</strong></div>
-                <div style="display:flex;justify-content:space-between;padding:3px 0;"><span style="color:#8da9bb;">SPEED</span><strong id="hud-speed">0 km/h</strong></div>
-                <div style="display:flex;justify-content:space-between;padding:3px 0;"><span style="color:#8da9bb;">THROTTLE</span><strong id="hud-throttle">0%</strong></div>
-                <div style="display:flex;justify-content:space-between;padding:3px 0;"><span style="color:#8da9bb;">BRAKE</span><strong id="hud-brake">OFF</strong></div>
-                <div style="display:flex;justify-content:space-between;padding:3px 0;"><span style="color:#8da9bb;">CAMERA</span><strong id="hud-camera">EXTERNAL</strong></div>
+                <div class="hud-row"><span>TIME ET</span><strong id="hud-time">00:00:00</strong></div>
+                <div class="hud-row"><span>SPEED</span><strong id="hud-speed">0 km/h</strong></div>
+                <div class="hud-row"><span>ALTITUDE</span><strong id="hud-altitude">0 m</strong></div>
+                <div class="hud-row"><span>THROTTLE</span><strong id="hud-throttle">0%</strong></div>
+                <div class="hud-row"><span>PITCH</span><strong id="hud-pitch">0.0 deg</strong></div>
+                <div class="hud-row"><span>MODE</span><strong id="hud-mode">GROUND</strong></div>
+                <div class="hud-row"><span>BRAKE</span><strong id="hud-brake">OFF</strong></div>
+                <div class="hud-row"><span>CAMERA</span><strong id="hud-camera">EXTERNAL</strong></div>
                 <div style="height:6px;margin-top:8px;border-radius:999px;background:rgba(255,255,255,.12);overflow:hidden;"><div id="hud-throttle-bar" style="width:0;height:100%;background:linear-gradient(90deg,#33c7ff,#48f08b);"></div></div>
             </div>
-            <div style="position:absolute;left:14px;bottom:14px;display:flex;gap:8px;pointer-events:auto;">
-                <button id="control-left">LEFT</button>
-                <button id="control-right">RIGHT</button>
+            <div style="position:absolute;left:14px;bottom:14px;display:flex;flex-direction:column;gap:8px;pointer-events:auto;">
+                <div style="display:flex;gap:8px;"><button id="control-left">LEFT</button><button id="control-right">RIGHT</button></div>
+                <div style="display:flex;gap:8px;"><button id="control-pitch-up">PITCH +</button><button id="control-pitch-down">PITCH -</button></div>
             </div>
             <div style="position:absolute;right:14px;bottom:14px;display:flex;gap:8px;pointer-events:auto;">
                 <button id="control-throttle-up">THR +</button>
@@ -191,6 +203,15 @@ export class Game {
         `;
 
         document.body.appendChild(this.hudRoot);
+
+        for (const row of this.hudRoot.querySelectorAll(".hud-row")) {
+            Object.assign(row.style, {
+                display: "flex",
+                justifyContent: "space-between",
+                padding: "3px 0"
+            });
+            row.querySelector("span").style.color = "#8da9bb";
+        }
 
         for (const button of this.hudRoot.querySelectorAll("button")) {
             Object.assign(button.style, {
@@ -208,13 +229,18 @@ export class Game {
 
         this.hudValues.time = this.hudRoot.querySelector("#hud-time");
         this.hudValues.speed = this.hudRoot.querySelector("#hud-speed");
+        this.hudValues.altitude = this.hudRoot.querySelector("#hud-altitude");
         this.hudValues.throttle = this.hudRoot.querySelector("#hud-throttle");
+        this.hudValues.pitch = this.hudRoot.querySelector("#hud-pitch");
+        this.hudValues.mode = this.hudRoot.querySelector("#hud-mode");
         this.hudValues.brake = this.hudRoot.querySelector("#hud-brake");
         this.hudValues.camera = this.hudRoot.querySelector("#hud-camera");
         this.hudValues.throttleBar = this.hudRoot.querySelector("#hud-throttle-bar");
 
         this.bindTouchControl("#control-left", "turnLeft");
         this.bindTouchControl("#control-right", "turnRight");
+        this.bindTouchControl("#control-pitch-up", "pitchUp");
+        this.bindTouchControl("#control-pitch-down", "pitchDown");
         this.bindTouchControl("#control-throttle-up", "throttleUp");
         this.bindTouchControl("#control-throttle-down", "throttleDown");
         this.bindTouchControl("#control-brake", "brake");
@@ -296,48 +322,67 @@ export class Game {
                 : "EXTERNAL";
     }
 
+    isActive(codes, touchAction) {
+        return (
+            codes.some((code) => this.keys.has(code)) ||
+            this.touchState[touchAction]
+        );
+    }
+
     updateControls(deltaTime) {
-        const throttleUp =
-            this.keys.has("KeyW") ||
-            this.keys.has("ArrowUp") ||
-            this.touchState.throttleUp;
+        const throttleUp = this.isActive(["KeyW"], "throttleUp");
+        const throttleDown = this.isActive(["KeyS"], "throttleDown");
+        const turnLeft = this.isActive(["KeyA", "ArrowLeft"], "turnLeft");
+        const turnRight = this.isActive(["KeyD", "ArrowRight"], "turnRight");
+        const pitchUp = this.isActive(["ArrowDown"], "pitchUp");
+        const pitchDown = this.isActive(["ArrowUp"], "pitchDown");
 
-        const throttleDown =
-            this.keys.has("KeyS") ||
-            this.keys.has("ArrowDown") ||
-            this.touchState.throttleDown;
-
-        const turnLeft =
-            this.keys.has("KeyA") ||
-            this.keys.has("ArrowLeft") ||
-            this.touchState.turnLeft;
-
-        const turnRight =
-            this.keys.has("KeyD") ||
-            this.keys.has("ArrowRight") ||
-            this.touchState.turnRight;
-
-        this.brakeActive =
-            this.keys.has("Space") ||
-            this.touchState.brake;
+        this.flightState.brakeActive = this.isActive(["Space"], "brake");
 
         const throttleRate = 0.45;
 
         if (throttleUp) {
-            this.throttle += throttleRate * deltaTime;
+            this.flightState.throttle += throttleRate * deltaTime;
         }
 
         if (throttleDown) {
-            this.throttle -= throttleRate * deltaTime;
+            this.flightState.throttle -= throttleRate * deltaTime;
         }
 
-        this.throttle = THREE.MathUtils.clamp(this.throttle, 0, 1);
-        this.updateSteering(deltaTime, turnLeft, turnRight);
+        this.flightState.throttle = THREE.MathUtils.clamp(
+            this.flightState.throttle,
+            0,
+            1
+        );
+
+        if (this.flightState.airborne) {
+            this.updateAirControls(
+                deltaTime,
+                turnLeft,
+                turnRight,
+                pitchUp,
+                pitchDown
+            );
+        } else {
+            this.updateGroundControls(
+                deltaTime,
+                turnLeft,
+                turnRight,
+                pitchUp,
+                pitchDown
+            );
+        }
     }
 
-    updateSteering(deltaTime, turnLeft, turnRight) {
+    updateGroundControls(
+        deltaTime,
+        turnLeft,
+        turnRight,
+        pitchUp,
+        pitchDown
+    ) {
         const speedEffect = THREE.MathUtils.clamp(
-            this.speedMetersPerSecond / 8,
+            this.flightState.speedMetersPerSecond / 8,
             0,
             1
         );
@@ -346,37 +391,129 @@ export class Game {
         const steeringRate = THREE.MathUtils.degToRad(28);
 
         if (turnLeft) {
-            this.heading += steeringRate * steeringEffect * deltaTime;
+            this.flightState.heading +=
+                steeringRate * steeringEffect * deltaTime;
         }
 
         if (turnRight) {
-            this.heading -= steeringRate * steeringEffect * deltaTime;
+            this.flightState.heading -=
+                steeringRate * steeringEffect * deltaTime;
         }
 
-        this.heading =
-            THREE.MathUtils.euclideanModulo(
-                this.heading + Math.PI,
-                Math.PI * 2
-            ) - Math.PI;
+        const rotationSpeed = 27;
+
+        if (
+            pitchUp &&
+            this.flightState.speedMetersPerSecond >= rotationSpeed
+        ) {
+            this.flightState.pitch +=
+                THREE.MathUtils.degToRad(18) * deltaTime;
+        }
+
+        if (pitchDown) {
+            this.flightState.pitch -=
+                THREE.MathUtils.degToRad(18) * deltaTime;
+        }
+
+        this.flightState.pitch = THREE.MathUtils.clamp(
+            this.flightState.pitch,
+            0,
+            THREE.MathUtils.degToRad(12)
+        );
+
+        if (!pitchUp && !pitchDown) {
+            this.flightState.pitch = THREE.MathUtils.damp(
+                this.flightState.pitch,
+                0,
+                6,
+                deltaTime
+            );
+        }
+
+        this.flightState.roll = THREE.MathUtils.damp(
+            this.flightState.roll,
+            0,
+            8,
+            deltaTime
+        );
+    }
+
+    updateAirControls(
+        deltaTime,
+        turnLeft,
+        turnRight,
+        pitchUp,
+        pitchDown
+    ) {
+        const pitchRate = THREE.MathUtils.degToRad(22);
+        const rollRate = THREE.MathUtils.degToRad(42);
+
+        if (pitchUp) {
+            this.flightState.pitch += pitchRate * deltaTime;
+        }
+
+        if (pitchDown) {
+            this.flightState.pitch -= pitchRate * deltaTime;
+        }
+
+        if (turnLeft) {
+            this.flightState.roll += rollRate * deltaTime;
+        }
+
+        if (turnRight) {
+            this.flightState.roll -= rollRate * deltaTime;
+        }
+
+        if (!turnLeft && !turnRight) {
+            this.flightState.roll = THREE.MathUtils.damp(
+                this.flightState.roll,
+                0,
+                2.5,
+                deltaTime
+            );
+        }
+
+        this.flightState.pitch = THREE.MathUtils.clamp(
+            this.flightState.pitch,
+            THREE.MathUtils.degToRad(-18),
+            THREE.MathUtils.degToRad(24)
+        );
+
+        this.flightState.roll = THREE.MathUtils.clamp(
+            this.flightState.roll,
+            THREE.MathUtils.degToRad(-45),
+            THREE.MathUtils.degToRad(45)
+        );
+
+        this.flightState.heading +=
+            Math.sin(this.flightState.roll) *
+            THREE.MathUtils.degToRad(18) *
+            deltaTime;
     }
 
     updateDirection() {
         this.forwardVector.set(
-            -Math.sin(this.heading),
+            -Math.sin(this.flightState.heading),
             0,
-            -Math.cos(this.heading)
+            -Math.cos(this.flightState.heading)
         );
     }
 
-    updateGroundMovement(deltaTime) {
-        const maximumSpeed = 40;
-        const engineAcceleration = this.throttle * 4.5;
-        const rollingResistance = this.speedMetersPerSecond > 0 ? 0.55 : 0;
-        const aerodynamicDrag =
-            0.0025 *
-            this.speedMetersPerSecond *
-            this.speedMetersPerSecond;
-        const brakeDeceleration = this.brakeActive ? 10 : 0;
+    updatePhysics(deltaTime) {
+        const speed = this.flightState.speedMetersPerSecond;
+        const engineAcceleration =
+            this.flightState.throttle *
+            (this.flightState.airborne ? 2.8 : 4.5);
+        const rollingResistance = this.flightState.airborne
+            ? 0
+            : speed > 0
+                ? 0.55
+                : 0;
+        const aerodynamicDrag = 0.0022 * speed * speed;
+        const brakeDeceleration =
+            this.flightState.brakeActive && !this.flightState.airborne
+                ? 10
+                : 0;
 
         const acceleration =
             engineAcceleration -
@@ -384,22 +521,83 @@ export class Game {
             aerodynamicDrag -
             brakeDeceleration;
 
-        this.speedMetersPerSecond += acceleration * deltaTime;
-        this.speedMetersPerSecond = THREE.MathUtils.clamp(
-            this.speedMetersPerSecond,
+        this.flightState.speedMetersPerSecond = THREE.MathUtils.clamp(
+            speed + acceleration * deltaTime,
             0,
-            maximumSpeed
+            75
         );
+
+        const takeoffSpeed = 27;
+        const takeoffPitch = THREE.MathUtils.degToRad(5);
+
+        if (
+            !this.flightState.airborne &&
+            this.flightState.speedMetersPerSecond >= takeoffSpeed &&
+            this.flightState.pitch >= takeoffPitch
+        ) {
+            this.flightState.airborne = true;
+            this.flightState.verticalSpeed = 1.5;
+        }
 
         this.updateDirection();
 
         this.aircraft.position.addScaledVector(
             this.forwardVector,
-            this.speedMetersPerSecond * deltaTime
+            this.flightState.speedMetersPerSecond * deltaTime
         );
 
-        this.aircraft.position.y = 0.12;
-        this.aircraft.rotation.y = this.heading;
+        if (this.flightState.airborne) {
+            const pitchLift =
+                Math.sin(this.flightState.pitch) *
+                this.flightState.speedMetersPerSecond *
+                0.52;
+            const baseLift =
+                Math.max(
+                    0,
+                    this.flightState.speedMetersPerSecond - 23
+                ) * 0.08;
+            const targetVerticalSpeed = pitchLift + baseLift - 1.2;
+
+            this.flightState.verticalSpeed = THREE.MathUtils.damp(
+                this.flightState.verticalSpeed,
+                targetVerticalSpeed,
+                2,
+                deltaTime
+            );
+
+            this.aircraft.position.y +=
+                this.flightState.verticalSpeed * deltaTime;
+
+            if (
+                this.aircraft.position.y <= 0.12 &&
+                this.flightState.verticalSpeed <= 0
+            ) {
+                this.aircraft.position.y = 0.12;
+                this.flightState.airborne = false;
+                this.flightState.verticalSpeed = 0;
+                this.flightState.roll = 0;
+                this.flightState.pitch = Math.max(
+                    0,
+                    this.flightState.pitch
+                );
+            }
+        } else {
+            this.aircraft.position.y = 0.12;
+        }
+
+        this.flightState.altitudeMeters = Math.max(
+            0,
+            this.aircraft.position.y - 0.12
+        );
+    }
+
+    updateAircraftRotation() {
+        this.aircraft.rotation.set(
+            this.flightState.pitch,
+            this.flightState.heading,
+            this.flightState.roll,
+            "YXZ"
+        );
     }
 
     updateCamera() {
@@ -449,7 +647,9 @@ export class Game {
         this.cameraTarget.y += 2.25;
 
         this.camera.position.copy(this.cameraPosition);
-        this.camera.up.set(0, 1, 0);
+        this.camera.up
+            .set(0, 1, 0)
+            .applyEuler(this.aircraft.rotation);
         this.camera.lookAt(this.cameraTarget);
         this.camera.updateMatrixWorld(true);
     }
@@ -462,7 +662,7 @@ export class Game {
         }
 
         propeller.rotation.z +=
-            (5 + this.throttle * 70) * deltaTime;
+            (5 + this.flightState.throttle * 70) * deltaTime;
     }
 
     updateHUD() {
@@ -470,14 +670,33 @@ export class Game {
             return;
         }
 
-        const speedKmh = Math.round(this.speedMetersPerSecond * 3.6);
-        const throttlePercent = Math.round(this.throttle * 100);
+        const speedKmh = Math.round(
+            this.flightState.speedMetersPerSecond * 3.6
+        );
+        const throttlePercent = Math.round(
+            this.flightState.throttle * 100
+        );
+        const altitudeMeters = Math.round(
+            this.flightState.altitudeMeters
+        );
+        const pitchDegrees = THREE.MathUtils.radToDeg(
+            this.flightState.pitch
+        );
 
-        this.hudValues.time.textContent = this.timeFormatter.format(new Date());
+        this.hudValues.time.textContent =
+            this.timeFormatter.format(new Date());
         this.hudValues.speed.textContent = `${speedKmh} km/h`;
+        this.hudValues.altitude.textContent = `${altitudeMeters} m`;
         this.hudValues.throttle.textContent = `${throttlePercent}%`;
-        this.hudValues.brake.textContent = this.brakeActive ? "ON" : "OFF";
-        this.hudValues.brake.style.color = this.brakeActive ? "#ff8a74" : "#ffffff";
+        this.hudValues.pitch.textContent = `${pitchDegrees.toFixed(1)} deg`;
+        this.hudValues.mode.textContent =
+            this.flightState.airborne ? "AIR" : "GROUND";
+        this.hudValues.mode.style.color =
+            this.flightState.airborne ? "#48f08b" : "#ffffff";
+        this.hudValues.brake.textContent =
+            this.flightState.brakeActive ? "ON" : "OFF";
+        this.hudValues.brake.style.color =
+            this.flightState.brakeActive ? "#ff8a74" : "#ffffff";
         this.hudValues.camera.textContent = this.cameraMode;
         this.hudValues.throttleBar.style.width = `${throttlePercent}%`;
     }
@@ -488,7 +707,8 @@ export class Game {
         }
 
         this.updateControls(deltaTime);
-        this.updateGroundMovement(deltaTime);
+        this.updatePhysics(deltaTime);
+        this.updateAircraftRotation();
         this.updatePropeller(deltaTime);
         this.updateCamera();
         this.updateHUD();
