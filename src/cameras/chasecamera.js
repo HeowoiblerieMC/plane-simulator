@@ -4,9 +4,14 @@ export class ChaseCamera {
     constructor(camera) {
         this.camera = camera;
 
-        this.position = new THREE.Vector3();
-        this.target = new THREE.Vector3();
-        this.forward = new THREE.Vector3();
+        this.position =
+            new THREE.Vector3();
+
+        this.target =
+            new THREE.Vector3();
+
+        this.forward =
+            new THREE.Vector3();
     }
 
     update(aircraft, flightState) {
@@ -31,14 +36,14 @@ export class ChaseCamera {
     updateGroundCamera(aircraft) {
         this.position.set(
             0,
-            aircraft.position.y + 4.5,
-            aircraft.position.z + 18
+            aircraft.position.y + 3.8,
+            aircraft.position.z + 15
         );
 
         this.target.set(
             0,
-            aircraft.position.y + 1.8,
-            aircraft.position.z - 25
+            aircraft.position.y + 1.6,
+            aircraft.position.z - 30
         );
 
         this.applyCamera();
@@ -62,19 +67,19 @@ export class ChaseCamera {
             .copy(aircraft.position)
             .addScaledVector(
                 this.forward,
-                -18
+                -15
             );
 
-        this.position.y += 4.5;
+        this.position.y += 3.8;
 
         this.target
             .copy(aircraft.position)
             .addScaledVector(
                 this.forward,
-                25
+                30
             );
 
-        this.target.y += 1.8;
+        this.target.y += 1.6;
 
         this.applyCamera();
     }
@@ -94,7 +99,8 @@ export class ChaseCamera {
             this.target
         );
 
-        this.camera.updateProjectionMatrix();
-        this.camera.updateMatrixWorld(true);
+        this.camera.updateMatrixWorld(
+            true
+        );
     }
 }
