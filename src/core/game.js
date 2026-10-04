@@ -5,6 +5,10 @@ import {
 } from "../airport/JFK/createjfk.js";
 
 import {
+    createCity
+} from "../environment/createcity.js";
+
+import {
     getAircraftById
 } from "../aircraft/aircraftcatalog.js";
 
@@ -27,6 +31,9 @@ export class Game {
         this.scene = null;
         this.camera = null;
         this.renderer = null;
+
+        this.airport = null;
+        this.city = null;
         this.aircraft = null;
 
         this.clock =
@@ -112,6 +119,7 @@ export class Game {
         this.createLights();
         this.createGround();
         this.createAirport();
+        this.createEnvironment();
         this.createAircraft();
         this.createHUD();
         this.bindEvents();
@@ -144,15 +152,17 @@ export class Game {
     }
 
     createCamera() {
-        const width = Math.max(
-            this.container.clientWidth,
-            1
-        );
+        const width =
+            Math.max(
+                this.container.clientWidth,
+                1
+            );
 
-        const height = Math.max(
-            this.container.clientHeight,
-            1
-        );
+        const height =
+            Math.max(
+                this.container.clientHeight,
+                1
+            );
 
         this.camera =
             new THREE.PerspectiveCamera(
@@ -256,14 +266,29 @@ export class Game {
         ground.position.y =
             -0.08;
 
+        ground.receiveShadow =
+            false;
+
         this.scene.add(
             ground
         );
     }
 
     createAirport() {
+        this.airport =
+            createJFK();
+
         this.scene.add(
-            createJFK()
+            this.airport
+        );
+    }
+
+    createEnvironment() {
+        this.city =
+            createCity();
+
+        this.scene.add(
+            this.city
         );
     }
 
@@ -322,26 +347,37 @@ export class Game {
     }
 
     resetFlightState() {
-        this.flightState.throttle = 0;
+        this.flightState.throttle =
+            0;
 
         this.flightState
-            .speedMetersPerSecond = 0;
+            .speedMetersPerSecond =
+            0;
 
         this.flightState
-            .verticalSpeed = 0;
+            .verticalSpeed =
+            0;
 
         this.flightState
-            .altitudeMeters = 0;
+            .altitudeMeters =
+            0;
 
-        this.flightState.heading = 0;
-        this.flightState.pitch = 0;
-        this.flightState.roll = 0;
+        this.flightState.heading =
+            0;
+
+        this.flightState.pitch =
+            0;
+
+        this.flightState.roll =
+            0;
 
         this.flightState
-            .brakeActive = false;
+            .brakeActive =
+            false;
 
         this.flightState
-            .airborne = false;
+            .airborne =
+            false;
     }
 
     createHUD() {
@@ -1249,7 +1285,8 @@ export class Game {
                 true;
 
             this.flightState
-                .verticalSpeed = 1.5;
+                .verticalSpeed =
+                1.5;
         }
 
         this.updateDirection();
@@ -1316,7 +1353,8 @@ export class Game {
                     .position.y <=
                     groundHeight &&
                 this.flightState
-                    .verticalSpeed <= 0
+                    .verticalSpeed <=
+                    0
             ) {
                 this.aircraft
                     .position.y =
@@ -1326,7 +1364,8 @@ export class Game {
                     false;
 
                 this.flightState
-                    .verticalSpeed = 0;
+                    .verticalSpeed =
+                    0;
 
                 this.flightState.roll =
                     0;
@@ -1347,7 +1386,8 @@ export class Game {
             .altitudeMeters =
             Math.max(
                 0,
-                this.aircraft.position.y -
+                this.aircraft
+                    .position.y -
                     groundHeight
             );
     }
@@ -1428,10 +1468,9 @@ export class Game {
             this.cameraTarget
         );
 
-        this.camera
-            .updateMatrixWorld(
-                true
-            );
+        this.camera.updateMatrixWorld(
+            true
+        );
     }
 
     updateCockpitCamera() {
@@ -1485,10 +1524,9 @@ export class Game {
             this.cameraTarget
         );
 
-        this.camera
-            .updateMatrixWorld(
-                true
-            );
+        this.camera.updateMatrixWorld(
+            true
+        );
     }
 
     updateRotatingParts(
@@ -1504,7 +1542,8 @@ export class Game {
             deltaTime;
 
         const propeller =
-            this.aircraft?.userData
+            this.aircraft
+                ?.userData
                 .propeller;
 
         if (propeller) {
@@ -1513,7 +1552,8 @@ export class Game {
         }
 
         const rotatingParts =
-            this.aircraft?.userData
+            this.aircraft
+                ?.userData
                 .rotatingParts;
 
         if (
@@ -1558,7 +1598,8 @@ export class Game {
 
         const pitchDegrees =
             THREE.MathUtils.radToDeg(
-                this.flightState.pitch
+                this.flightState
+                    .pitch
             );
 
         this.hudValues.time
@@ -1587,25 +1628,29 @@ export class Game {
 
         this.hudValues.mode
             .textContent =
-            this.flightState.airborne
+            this.flightState
+                .airborne
                 ? "AIR"
                 : "GROUND";
 
         this.hudValues.mode
             .style.color =
-            this.flightState.airborne
+            this.flightState
+                .airborne
                 ? "#48f08b"
                 : "#ffffff";
 
         this.hudValues.brake
             .textContent =
-            this.flightState.brakeActive
+            this.flightState
+                .brakeActive
                 ? "ON"
                 : "OFF";
 
         this.hudValues.brake
             .style.color =
-            this.flightState.brakeActive
+            this.flightState
+                .brakeActive
                 ? "#ff8a74"
                 : "#ffffff";
 
@@ -1676,15 +1721,19 @@ export class Game {
             return;
         }
 
-        const width = Math.max(
-            this.container.clientWidth,
-            1
-        );
+        const width =
+            Math.max(
+                this.container
+                    .clientWidth,
+                1
+            );
 
-        const height = Math.max(
-            this.container.clientHeight,
-            1
-        );
+        const height =
+            Math.max(
+                this.container
+                    .clientHeight,
+                1
+            );
 
         this.camera.aspect =
             width / height;
@@ -1711,7 +1760,8 @@ export class Game {
             return;
         }
 
-        this.isRunning = false;
+        this.isRunning =
+            false;
 
         if (
             this.animationFrameId !==
@@ -1755,9 +1805,14 @@ export class Game {
         this.hudRoot = null;
 
         this.renderer?.dispose();
-        this.renderer?.domElement.remove();
+
+        this.renderer
+            ?.domElement
+            .remove();
 
         this.aircraft = null;
+        this.airport = null;
+        this.city = null;
         this.renderer = null;
         this.camera = null;
         this.scene = null;
