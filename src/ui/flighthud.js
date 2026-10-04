@@ -192,13 +192,17 @@ export class FlightHUD {
     }
 
     update(data) {
-        const time =
-            new Date().toLocaleTimeString(
-                "en-US",
-                {
-                    hour12: false
-                }
-            );
+       const newYorkTime =
+    new Intl.DateTimeFormat(
+        "en-US",
+        {
+            timeZone: "America/New_York",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false
+        }
+    ).format(new Date());
 
         const speedKmh =
             Math.max(
