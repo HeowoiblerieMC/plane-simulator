@@ -67,7 +67,7 @@ export class Game {
     createCamera() {
         const width = Math.max(this.container.clientWidth, 1);
         const height = Math.max(this.container.clientHeight, 1);
-        this.camera = new THREE.PerspectiveCamera(62, width / height, 0.08, 30000);
+        this.camera = new THREE.PerspectiveCamera(60, width / height, 0.08, 30000);
     }
 
     createRenderer() {
@@ -233,26 +233,32 @@ export class Game {
             return;
         }
 
-        if (this.cameraMode === "COCKPIT") {
-            this.updateCockpitCamera();
-            return;
+        const cockpitMode = this.cameraMode === "COCKPIT";
+        const cockpit = this.aircraft.userData.cockpit;
+
+        if (cockpit) {
+            cockpit.visible = cockpitMode;
         }
 
-        this.updateExternalCamera();
+        if (cockpitMode) {
+            this.updateCockpitCamera();
+        } else {
+            this.updateExternalCamera();
+        }
     }
 
     updateExternalCamera() {
         if (!this.flightState.airborne) {
             this.cameraPosition.set(
                 0,
-                this.aircraft.position.y + 5.2,
+                this.aircraft.position.y + 14,
                 this.aircraft.position.z + 16
             );
 
             this.cameraTarget.set(
                 0,
-                this.aircraft.position.y + 1.7,
-                this.aircraft.position.z - 30
+                this.aircraft.position.y + 1.8,
+                this.aircraft.position.z - 4
             );
         } else {
             this.forwardVector.set(
@@ -263,13 +269,13 @@ export class Game {
 
             this.cameraPosition
                 .copy(this.aircraft.position)
-                .addScaledVector(this.forwardVector, -18);
+                .addScaledVector(this.forwardVector, -16);
 
-            this.cameraPosition.y += 5.5;
+            this.cameraPosition.y += 14;
 
             this.cameraTarget
                 .copy(this.aircraft.position)
-                .addScaledVector(this.forwardVector, 15);
+                .addScaledVector(this.forwardVector, 4);
 
             this.cameraTarget.y += 1.8;
         }
@@ -280,21 +286,32 @@ export class Game {
     }
 
     updateCockpitCamera() {
-        const mount = this.aircraft.userData.cockpitCameraMount;
-        const target = this.aircraft.userData.cockpitLookTarget;
+        const localPosition = new THREE.Vector3(
+            0,
+            2.62,
+            -0.55
+        );
 
-        if (!mount || !target) {
-            return;
-        }
+        const localTarget = new THREE.Vector3(
+            0,
+            2.48,
+            -50
+        );
 
-        this.aircraft.updateMatrixWorld(true);
-        mount.getWorldPosition(this.cameraPosition);
-        target.getWorldPosition(this.cameraTarget);
+        this.cameraPosition
+            .copy(localPosition)
+            .applyQuaternion(this.aircraft.quaternion)
+            .add(this.aircraft.position);
+
+        this.cameraTarget
+            .copy(localTarget)
+            .applyQuaternion(this.aircraft.quaternion)
+            .add(this.aircraft.position);
 
         this.camera.position.copy(this.cameraPosition);
-        this.camera.up.set(0, 1, 0).applyQuaternion(
-            this.aircraft.quaternion
-        );
+        this.camera.up
+            .set(0, 1, 0)
+            .applyQuaternion(this.aircraft.quaternion);
         this.camera.lookAt(this.cameraTarget);
     }
 
