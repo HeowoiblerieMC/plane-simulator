@@ -43,16 +43,16 @@ export class Game {
         };
 
         this.cameraOffset = new THREE.Vector3(
-    0,
-    3.6,
-    10
-);
+            0,
+            7,
+            24
+        );
 
-this.cameraTargetOffset = new THREE.Vector3(
-    0,
-    1.4,
-    -4
-);
+        this.cameraTargetOffset = new THREE.Vector3(
+            0,
+            2.5,
+            -6
+        );
 
         this.desiredCameraPosition = new THREE.Vector3();
         this.desiredCameraTarget = new THREE.Vector3();
@@ -122,14 +122,14 @@ this.cameraTargetOffset = new THREE.Vector3(
 
         this.camera.position.set(
             0,
-            5.62,
-            1268
+            7.12,
+            1274
         );
 
         this.camera.lookAt(
             0,
-            1.72,
-            1250
+            2.62,
+            1244
         );
     }
 
@@ -262,14 +262,14 @@ this.cameraTargetOffset = new THREE.Vector3(
 
         this.camera.position.set(
             this.aircraft.position.x,
-            this.aircraft.position.y + 5.5,
-            this.aircraft.position.z + 18
+            this.aircraft.position.y + 7,
+            this.aircraft.position.z + 24
         );
 
         this.smoothedCameraTarget.set(
             this.aircraft.position.x,
-            this.aircraft.position.y + 1.6,
-            this.aircraft.position.z
+            this.aircraft.position.y + 2.5,
+            this.aircraft.position.z - 6
         );
 
         this.camera.lookAt(
@@ -677,6 +677,8 @@ this.cameraTargetOffset = new THREE.Vector3(
             return;
         }
 
+        void deltaTime;
+
         this.cameraHeadingQuaternion.setFromAxisAngle(
             this.worldUpAxis,
             this.flightState.heading
@@ -692,24 +694,14 @@ this.cameraTargetOffset = new THREE.Vector3(
             .applyQuaternion(this.cameraHeadingQuaternion)
             .add(this.aircraft.position);
 
-        const positionSmoothing =
-            1 - Math.exp(-8 * deltaTime);
-
-        const targetSmoothing =
-            1 - Math.exp(-12 * deltaTime);
-
-        this.camera.position.lerp(
-            this.desiredCameraPosition,
-            positionSmoothing
+        this.camera.position.copy(
+            this.desiredCameraPosition
         );
 
-        this.smoothedCameraTarget.lerp(
-            this.desiredCameraTarget,
-            targetSmoothing
-        );
+        this.camera.up.set(0, 1, 0);
 
         this.camera.lookAt(
-            this.smoothedCameraTarget
+            this.desiredCameraTarget
         );
     }
 
