@@ -30,6 +30,14 @@ export class Game {
 
         this.keys = new Set();
 
+        this.cameraModes = [
+            "CHASE",
+            "COCKPIT"
+        ];
+
+        this.cameraModeIndex = 0;
+        this.cameraMode = this.cameraModes[0];
+
         this.flightState = {
             throttle: 0,
             speedMetersPerSecond: 0,
@@ -44,14 +52,26 @@ export class Game {
 
         this.cameraOffset = new THREE.Vector3(
             0,
-            7,
-            24
+            4.8,
+            16
         );
 
         this.cameraTargetOffset = new THREE.Vector3(
             0,
-            2.5,
-            -6
+            1.8,
+            -5
+        );
+
+        this.cockpitOffset = new THREE.Vector3(
+            0,
+            2.18,
+            -1.35
+        );
+
+        this.cockpitTargetOffset = new THREE.Vector3(
+            0,
+            2.1,
+            -50
         );
 
         this.desiredCameraPosition = new THREE.Vector3();
@@ -122,14 +142,14 @@ export class Game {
 
         this.camera.position.set(
             0,
-            7.12,
-            1274
+            4.92,
+            1266
         );
 
         this.camera.lookAt(
             0,
-            2.62,
-            1244
+            1.92,
+            1245
         );
     }
 
@@ -262,14 +282,14 @@ export class Game {
 
         this.camera.position.set(
             this.aircraft.position.x,
-            this.aircraft.position.y + 7,
-            this.aircraft.position.z + 24
+            this.aircraft.position.y + 4.8,
+            this.aircraft.position.z + 16
         );
 
         this.smoothedCameraTarget.set(
             this.aircraft.position.x,
-            this.aircraft.position.y + 2.5,
-            this.aircraft.position.z - 6
+            this.aircraft.position.y + 1.8,
+            this.aircraft.position.z - 5
         );
 
         this.camera.lookAt(
@@ -309,11 +329,17 @@ export class Game {
             "ArrowRight",
             "ArrowUp",
             "ArrowDown",
-            "Space"
+            "Space",
+            "KeyC"
         ];
 
         if (controlledKeys.includes(event.code)) {
             event.preventDefault();
+        }
+
+        if (event.code === "KeyC" && !event.repeat) {
+            this.cycleCameraMode();
+            return;
         }
 
         this.keys.add(event.code);
@@ -321,6 +347,19 @@ export class Game {
 
     handleKeyUp(event) {
         this.keys.delete(event.code);
+    }
+
+    cycleCameraMode() {
+        this.cameraModeIndex =
+            (this.cameraModeIndex + 1) %
+            this.cameraModes.length;
+
+        this.cameraMode =
+            this.cameraModes[this.cameraModeIndex];
+
+        console.log(
+            `Camera mode: ${this.cameraMode}`
+        );
     }
 
     isActionActive(keyboardCodes, touchAction) {
@@ -677,21 +716,34 @@ export class Game {
             return;
         }
 
-        void deltaTime;
-
         this.cameraHeadingQuaternion.setFromAxisAngle(
             this.worldUpAxis,
             this.flightState.heading
         );
 
+        if (this.cameraMode === "COCKPIT") {
+            this.updateCockpitCamera();
+            return;
+        }
+
+        this.updateChaseCamera(deltaTime);
+    }
+
+    updateChaseCamera(deltaTime) {
+        void deltaTime;
+
         this.desiredCameraPosition
             .copy(this.cameraOffset)
-            .applyQuaternion(this.cameraHeadingQuaternion)
+            .applyQuaternion(
+                this.cameraHeadingQuaternion
+            )
             .add(this.aircraft.position);
 
         this.desiredCameraTarget
             .copy(this.cameraTargetOffset)
-            .applyQuaternion(this.cameraHeadingQuaternion)
+            .applyQuaternion(
+                this.cameraHeadingQuaternion
+            )
             .add(this.aircraft.position);
 
         this.camera.position.copy(
@@ -699,6 +751,36 @@ export class Game {
         );
 
         this.camera.up.set(0, 1, 0);
+
+        this.camera.lookAt(
+            this.desiredCameraTarget
+        );
+    }
+
+    updateCockpitCamera() {
+        this.desiredCameraPosition
+            .copy(this.cockpitOffset)
+            .applyQuaternion(
+                this.aircraft.quaternion
+            )
+            .add(this.aircraft.position);
+
+        this.desiredCameraTarget
+            .copy(this.cockpitTargetOffset)
+            .applyQuaternion(
+                this.aircraft.quaternion
+            )
+            .add(this.aircraft.position);
+
+        this.camera.position.copy(
+            this.desiredCameraPosition
+        );
+
+        this.camera.up
+            .set(0, 1, 0)
+            .applyQuaternion(
+                this.aircraft.quaternion
+            );
 
         this.camera.lookAt(
             this.desiredCameraTarget
@@ -725,7 +807,9 @@ export class Game {
             brakeActive:
                 this.flightState.brakeActive,
             airborne:
-                this.flightState.airborne
+                this.flightState.airborne,
+            cameraMode:
+                this.cameraMode
         });
     }
 
