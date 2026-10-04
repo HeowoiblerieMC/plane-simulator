@@ -1,115 +1,197 @@
 import * as THREE from "three";
-import {
-    RUNWAY_LENGTH,
-    RUNWAY_WIDTH,
-    RUNWAY_TOP_Y,
-    TAXIWAY_X
-} from "./createrunways.js";
+import { RUNWAY_LENGTH, RUNWAY_WIDTH, RUNWAY_TOP_Y } from "./createrunways.js";
 
-const MARKING_Y = RUNWAY_TOP_Y + 0.015;
-
-function createMaterial(color) {
-    return new THREE.MeshBasicMaterial({
-        color,
-        side: THREE.DoubleSide,
-        depthWrite: false,
-        depthTest: true
-    });
+function material(color, roughness = 0.8, metalness = 0.05) {
+    return new THREE.MeshStandardMaterial({ color, roughness, metalness });
 }
 
-function addMarking(group, width, length, x, z, color = 0xffffff) {
+function addBox(group, name, size, position, color) {
     const mesh = new THREE.Mesh(
-        new THREE.PlaneGeometry(width, length),
-        createMaterial(color)
+        new THREE.BoxGeometry(...size),
+        material(color)
     );
-
-    mesh.rotation.x = -Math.PI / 2;
-    mesh.position.set(x, MARKING_Y, z);
-    mesh.renderOrder = 10;
+    mesh.name = name;
+    mesh.position.set(...position);
+    mesh.castShadow = false;
+    mesh.receiveShadow = false;
     group.add(mesh);
     return mesh;
 }
 
-function createRunwayNumberTexture(text, rotation = 0) {
-    const canvas = document.createElement("canvas");
-    canvas.width = 512;
-    canvas.height = 512;
-
-    const context = canvas.getContext("2d");
-    context.clearRect(0, 0, 512, 512);
-    context.translate(256, 256);
-    context.rotate(rotation);
-    context.fillStyle = "#ffffff";
-    context.font = "bold 230px Arial";
-    context.textAlign = "center";
-    context.textBaseline = "middle";
-    context.fillText(text, 0, 18);
-
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.colorSpace = THREE.SRGBColorSpace;
-    return texture;
-}
-
-function addRunwayNumber(group, text, z, rotation) {
+function addLight(group, x, y, z, color, radius = 0.1) {
     const mesh = new THREE.Mesh(
-        new THREE.PlaneGeometry(22, 42),
-        new THREE.MeshBasicMaterial({
-            map: createRunwayNumberTexture(text, rotation),
-            transparent: true,
-            depthWrite: false,
-            side: THREE.DoubleSide
-        })
+        new THREE.SphereGeometry(radius, 10, 8),
+        new THREE.MeshBasicMaterial({ color })
     );
-
-    mesh.rotation.x = -Math.PI / 2;
-    mesh.position.set(0, MARKING_Y + 0.002, z);
-    mesh.renderOrder = 11;
+    mesh.position.set(x, y, z);
+    mesh.renderOrder = 20;
     group.add(mesh);
 }
 
-export function createRunwayMarkings() {
+function createLights() {
     const group = new THREE.Group();
-    group.name = "JFKRunwayMarkings";
+    group.name = "AirportLights";
 
-    for (let z = RUNWAY_LENGTH / 2 - 210; z >= -RUNWAY_LENGTH / 2 + 210; z -= 50) {
-        addMarking(group, 0.9, 30, 0, z);
+    const halfLength = RUNWAY_LENGTH / 2;
+    const edgeX = RUNWAY_WIDTH / 2 + 0.9;
+
+    for (let z = -halfLength + 25; z <= halfLength - 25; z += 50) {
+        addLight(group, -edgeX, 0.3, z, 0xffffff, 0.12);
+        addLight(group, edgeX, 0.3, z, 0xffffff, 0.12);
     }
 
-    const edgeX = RUNWAY_WIDTH / 2 - 1;
-    addMarking(group, 0.9, RUNWAY_LENGTH - 20, -edgeX, 0);
-    addMarking(group, 0.9, RUNWAY_LENGTH - 20, edgeX, 0);
+    for (let z = -halfLength + 100; z <= halfLength - 100; z += 30) {
+        addLight(group, 0, 0.29, z, 0xffffff, 0.075);
+    }
+
+    for (let x = -27; x <= 27; x += 3) {
+        addLight(group, x, 0.31, halfLength - 2, 0x3cff62, 0.11);
+        addLight(group, x, 0.31, -halfLength + 2, 0xff3030, 0.11);
+    }
 
     for (const direction of [-1, 1]) {
-        const thresholdZ = direction * (RUNWAY_LENGTH / 2 - 72);
+        const runwayEnd = direction * halfLength;
+        for (let distance = 30; distance <= 600; distance += 30) {
+            const z = runwayEnd + direction * distance;
+            addLight(group, 0, 0.3, z, 0xffffff, 0.09);
 
-        for (let index = 0; index < 7; index += 1) {
-            const x = 3.3 + index * 3.5;
-            addMarking(group, 2.2, 42, -x, thresholdZ);
-            addMarking(group, 2.2, 42, x, thresholdZ);
-        }
-
-        const aimingZ = direction * (RUNWAY_LENGTH / 2 - 430);
-        addMarking(group, 7.5, 52, -11.5, aimingZ);
-        addMarking(group, 7.5, 52, 11.5, aimingZ);
-
-        for (const distance of [300, 600, 750]) {
-            const touchdownZ = direction * (RUNWAY_LENGTH / 2 - distance);
-            for (const x of [-14, -8, 8, 14]) {
-                addMarking(group, 2.1, 22, x, touchdownZ);
+            if (distance % 150 === 0) {
+                for (let x = -12; x <= 12; x += 3) {
+                    addLight(group, x, 0.3, z, 0xffffff, 0.075);
+                }
             }
         }
     }
 
-    addRunwayNumber(group, "04", RUNWAY_LENGTH / 2 - 150, 0);
-    addRunwayNumber(group, "22", -RUNWAY_LENGTH / 2 + 150, Math.PI);
-
-    addMarking(group, 0.35, 3080, TAXIWAY_X, 0, 0xf5c928);
-
-    for (const z of [1100, 650, 200, -250, -700, -1150]) {
-        addMarking(group, 52, 0.32, 48, z, 0xf5c928);
-        addMarking(group, 0.45, 16, 61, z + 18, 0xf5c928);
-        addMarking(group, 0.45, 16, 64, z + 18, 0xf5c928);
+    for (const z of [1450, -1450]) {
+        const direction = Math.sign(z);
+        for (let index = 0; index < 4; index += 1) {
+            addLight(
+                group,
+                -42 + index * 2.2,
+                0.35,
+                z - direction * 25,
+                index < 2 ? 0xffffff : 0xff2828,
+                0.16
+            );
+        }
     }
 
+    return group;
+}
+
+function createTerminalComplex() {
+    const group = new THREE.Group();
+    group.name = "TerminalComplex";
+
+    addBox(group, "Terminal", [100, 15, 40], [155, 7.5, 620], 0x9aa4ad);
+    addBox(group, "TerminalRoof", [104, 1, 44], [155, 15.5, 620], 0x414a52);
+    addBox(group, "Concourse", [40, 9, 120], [120, 4.5, 540], 0x808b94);
+
+    for (const z of [500, 530, 560, 590]) {
+        addBox(group, "JetBridge", [28, 2.5, 4], [99, 4.5, z], 0xc4c9ce);
+    }
+
+    addBox(group, "Hangar", [60, 16, 44], [-150, 8, 200], 0x8a949d);
+    addBox(group, "HangarDoor", [42, 11, 0.5], [-150, 6, 177.8], 0x38434d);
+    addBox(group, "FireStation", [34, 10, 28], [-145, 5, -100], 0x9faaa9);
+
+    return group;
+}
+
+function createControlTower() {
+    const group = new THREE.Group();
+    group.name = "ControlTower";
+
+    const shaft = new THREE.Mesh(
+        new THREE.CylinderGeometry(4.2, 6.5, 34, 16),
+        material(0x848f98)
+    );
+    shaft.position.set(175, 17, 430);
+    group.add(shaft);
+
+    const cab = new THREE.Mesh(
+        new THREE.CylinderGeometry(8, 7, 5, 12),
+        new THREE.MeshStandardMaterial({
+            color: 0x23435b,
+            roughness: 0.25,
+            transparent: true,
+            opacity: 0.9
+        })
+    );
+    cab.position.set(175, 36.5, 430);
+    group.add(cab);
+
+    const roof = new THREE.Mesh(
+        new THREE.CylinderGeometry(9, 8, 1.2, 12),
+        material(0x343b42)
+    );
+    roof.position.set(175, 39.6, 430);
+    group.add(roof);
+
+    return group;
+}
+
+function createWindsock() {
+    const group = new THREE.Group();
+    group.name = "Windsock";
+
+    const pole = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.08, 0.08, 5, 10),
+        material(0xcbd0d4)
+    );
+    pole.position.set(-72, 2.5, 350);
+    group.add(pole);
+
+    const sock = new THREE.Mesh(
+        new THREE.ConeGeometry(0.5, 3.5, 16, 1, true),
+        new THREE.MeshBasicMaterial({
+            color: 0xff6c2a,
+            side: THREE.DoubleSide
+        })
+    );
+    sock.rotation.z = -Math.PI / 2;
+    sock.position.set(-70.2, 4.8, 350);
+    group.add(sock);
+
+    return group;
+}
+
+function createHelipad() {
+    const group = new THREE.Group();
+    group.name = "Helipad";
+
+    const pad = new THREE.Mesh(
+        new THREE.CylinderGeometry(13, 13, 0.12, 48),
+        material(0x454b50)
+    );
+    pad.position.set(-105, RUNWAY_TOP_Y, 600);
+    group.add(pad);
+
+    const ring = new THREE.Mesh(
+        new THREE.RingGeometry(8, 9, 48),
+        new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+            side: THREE.DoubleSide,
+            depthWrite: false
+        })
+    );
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.set(-105, RUNWAY_TOP_Y + 0.08, 600);
+    group.add(ring);
+
+    return group;
+}
+
+export function createAirportBuildings() {
+    const group = new THREE.Group();
+    group.name = "JFKAirportBuildings";
+    group.add(
+        createLights(),
+        createTerminalComplex(),
+        createControlTower(),
+        createWindsock(),
+        createHelipad()
+    );
     return group;
 }
