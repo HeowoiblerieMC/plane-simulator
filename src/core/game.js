@@ -27,7 +27,17 @@ export class Game {
 
         this.throttle = 0;
         this.speedMetersPerSecond = 0;
+        this.heading = 0;
         this.brakeActive = false;
+
+        this.forwardVector =
+            new THREE.Vector3();
+
+        this.cameraPosition =
+            new THREE.Vector3();
+
+        this.cameraTarget =
+            new THREE.Vector3();
 
         this.animationFrameId = null;
         this.isRunning = false;
@@ -65,7 +75,7 @@ export class Game {
         this.animate();
 
         console.log(
-            "Aircraft ground movement test started."
+            "Aircraft steering test started."
         );
     }
 
@@ -235,10 +245,14 @@ export class Game {
             0
         );
 
+        this.aircraft.rotation.order =
+            "YXZ";
+
         this.scene.add(
             this.aircraft
         );
 
+        this.updateDirection();
         this.updateCamera();
     }
 
@@ -263,8 +277,12 @@ export class Game {
         const controlledKeys = [
             "KeyW",
             "KeyS",
+            "KeyA",
+            "KeyD",
             "ArrowUp",
             "ArrowDown",
+            "ArrowLeft",
+            "ArrowRight",
             "Space"
         ];
 
@@ -296,6 +314,14 @@ export class Game {
             this.keys.has("KeyS") ||
             this.keys.has("ArrowDown");
 
+        const turnLeft =
+            this.keys.has("KeyA") ||
+            this.keys.has("ArrowLeft");
+
+        const turnRight =
+            this.keys.has("KeyD") ||
+            this.keys.has("ArrowRight");
+
         this.brakeActive =
             this.keys.has("Space");
 
@@ -319,6 +345,70 @@ export class Game {
                 0,
                 1
             );
+
+        this.updateSteering(
+            deltaTime,
+            turnLeft,
+            turnRight
+        );
+    }
+
+    updateSteering(
+        deltaTime,
+        turnLeft,
+        turnRight
+    ) {
+        const minimumSteeringEffect = 0.12;
+
+        const speedSteeringEffect =
+            THREE.MathUtils.clamp(
+                this.speedMetersPerSecond / 8,
+                0,
+                1
+            );
+
+        const steeringEffect =
+            Math.max(
+                minimumSteeringEffect,
+                speedSteeringEffect
+            );
+
+        const steeringRate =
+            THREE.MathUtils.degToRad(
+                28
+            );
+
+        if (turnLeft) {
+            this.heading +=
+                steeringRate *
+                steeringEffect *
+                deltaTime;
+        }
+
+        if (turnRight) {
+            this.heading -=
+                steeringRate *
+                steeringEffect *
+                deltaTime;
+        }
+
+        this.heading =
+            THREE.MathUtils.euclideanModulo(
+                this.heading + Math.PI,
+                Math.PI * 2
+            ) - Math.PI;
+    }
+
+    updateDirection() {
+        this.forwardVector.set(
+            -Math.sin(
+                this.heading
+            ),
+            0,
+            -Math.cos(
+                this.heading
+            )
+        );
     }
 
     updateGroundMovement(deltaTime) {
@@ -359,12 +449,18 @@ export class Game {
                 maximumSpeed
             );
 
-        this.aircraft.position.z -=
-            this.speedMetersPerSecond *
-            deltaTime;
+        this.updateDirection();
 
-        this.aircraft.position.x = 0;
+        this.aircraft.position.addScaledVector(
+            this.forwardVector,
+            this.speedMetersPerSecond *
+                deltaTime
+        );
+
         this.aircraft.position.y = 0.12;
+
+        this.aircraft.rotation.y =
+            this.heading;
     }
 
     updateCamera() {
@@ -375,19 +471,32 @@ export class Game {
             return;
         }
 
-        const x =
-            this.aircraft.position.x;
+        this.updateDirection();
 
-        const y =
-            this.aircraft.position.y;
+        this.cameraPosition
+            .copy(
+                this.aircraft.position
+            )
+            .addScaledVector(
+                this.forwardVector,
+                -38
+            );
 
-        const z =
-            this.aircraft.position.z;
+        this.cameraPosition.y += 4.8;
 
-        this.camera.position.set(
-            x,
-            y + 4.8,
-            z + 38
+        this.cameraTarget
+            .copy(
+                this.aircraft.position
+            )
+            .addScaledVector(
+                this.forwardVector,
+                2
+            );
+
+        this.cameraTarget.y += 3.2;
+
+        this.camera.position.copy(
+            this.cameraPosition
         );
 
         this.camera.up.set(
@@ -397,9 +506,7 @@ export class Game {
         );
 
         this.camera.lookAt(
-            x,
-            y + 3.2,
-            z - 2
+            this.cameraTarget
         );
 
         this.camera.updateMatrixWorld(
