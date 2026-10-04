@@ -43,24 +43,37 @@ export class Game {
         };
 
         this.cameraOffset =
-            new THREE.Vector3(
-                14,
-                7,
-                24
-            );
+    new THREE.Vector3(
+        0,
+        4.5,
+        13
+    );
 
-        this.cameraTargetOffset =
-            new THREE.Vector3(
-                0,
-                1.5,
-                -14
-            );
+this.cameraTargetOffset =
+    new THREE.Vector3(
+        0,
+        1.5,
+        -18
+    );
 
-        this.desiredCameraPosition =
-            new THREE.Vector3();
+this.desiredCameraPosition =
+    new THREE.Vector3();
 
-        this.desiredCameraTarget =
-            new THREE.Vector3();
+this.desiredCameraTarget =
+    new THREE.Vector3();
+
+this.smoothedCameraTarget =
+    new THREE.Vector3();
+
+this.cameraHeadingQuaternion =
+    new THREE.Quaternion();
+
+this.worldUpAxis =
+    new THREE.Vector3(
+        0,
+        1,
+        0
+    );
 
         this.forwardVector =
             new THREE.Vector3();
@@ -119,30 +132,36 @@ export class Game {
     }
 
     createCamera() {
-        const width = Math.max(
-            this.container.clientWidth,
-            1
+    const width = Math.max(
+        this.container.clientWidth,
+        1
+    );
+
+    const height = Math.max(
+        this.container.clientHeight,
+        1
+    );
+
+    this.camera =
+        new THREE.PerspectiveCamera(
+            58,
+            width / height,
+            0.1,
+            30000
         );
 
-        const height = Math.max(
-            this.container.clientHeight,
-            1
-        );
+    this.camera.position.set(
+        0,
+        4.62,
+        1263
+    );
 
-        this.camera =
-            new THREE.PerspectiveCamera(
-                55,
-                width / height,
-                0.1,
-                30000
-            );
-
-        this.camera.position.set(
-            14,
-            8,
-            1276
-        );
-    }
+    this.camera.lookAt(
+        0,
+        1.62,
+        1232
+    );
+}
 
     createRenderer() {
         const startupStatus =
@@ -279,22 +298,39 @@ export class Game {
     }
 
     createAircraft() {
-        this.aircraft = createSky172();
+    this.aircraft = createSky172();
 
-        this.aircraft.position.set(
-            0,
-            0.12,
-            1250
-        );
+    this.aircraft.position.set(
+        0,
+        0.12,
+        1250
+    );
 
-        this.aircraft.rotation.order =
-            "YXZ";
+    this.aircraft.rotation.order =
+        "YXZ";
 
-        this.scene.add(this.aircraft);
+    this.scene.add(
+        this.aircraft
+    );
 
-        this.updateAircraftRotation();
-        this.updateCamera(1);
-    }
+    this.updateAircraftRotation();
+
+    this.camera.position.set(
+        this.aircraft.position.x,
+        this.aircraft.position.y + 4.5,
+        this.aircraft.position.z + 13
+    );
+
+    this.smoothedCameraTarget.set(
+        this.aircraft.position.x,
+        this.aircraft.position.y + 1.5,
+        this.aircraft.position.z - 18
+    );
+
+    this.camera.lookAt(
+        this.smoothedCameraTarget
+    );
+}
 
     createHUD() {
         this.hud = new FlightHUD();
