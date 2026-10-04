@@ -42,56 +42,32 @@ export class Game {
             airborne: false
         };
 
-        this.cameraOffset =
-    new THREE.Vector3(
-        0,
-        4.5,
-        13
-    );
+        this.cameraOffset = new THREE.Vector3(
+            0,
+            5.5,
+            18
+        );
 
-this.cameraTargetOffset =
-    new THREE.Vector3(
-        0,
-        1.5,
-        -18
-    );
+        this.cameraTargetOffset = new THREE.Vector3(
+            0,
+            1.6,
+            0
+        );
 
-this.desiredCameraPosition =
-    new THREE.Vector3();
-
-this.desiredCameraTarget =
-    new THREE.Vector3();
-
-this.smoothedCameraTarget =
-    new THREE.Vector3();
-
-this.cameraHeadingQuaternion =
-    new THREE.Quaternion();
-
-this.worldUpAxis =
-    new THREE.Vector3(
-        0,
-        1,
-        0
-    );
-
-        this.forwardVector =
-            new THREE.Vector3();
+        this.desiredCameraPosition = new THREE.Vector3();
+        this.desiredCameraTarget = new THREE.Vector3();
+        this.smoothedCameraTarget = new THREE.Vector3();
+        this.cameraHeadingQuaternion = new THREE.Quaternion();
+        this.worldUpAxis = new THREE.Vector3(0, 1, 0);
+        this.forwardVector = new THREE.Vector3();
 
         this.animationFrameId = null;
         this.isRunning = false;
 
-        this.animate =
-            this.animate.bind(this);
-
-        this.handleResize =
-            this.handleResize.bind(this);
-
-        this.handleKeyDown =
-            this.handleKeyDown.bind(this);
-
-        this.handleKeyUp =
-            this.handleKeyUp.bind(this);
+        this.animate = this.animate.bind(this);
+        this.handleResize = this.handleResize.bind(this);
+        this.handleKeyDown = this.handleKeyDown.bind(this);
+        this.handleKeyUp = this.handleKeyUp.bind(this);
     }
 
     start() {
@@ -113,17 +89,12 @@ this.worldUpAxis =
         this.clock.start();
         this.animate();
 
-        console.log(
-            "Nova Flight Simulator started successfully."
-        );
+        console.log("Nova Flight Simulator started successfully.");
     }
 
     createScene() {
         this.scene = new THREE.Scene();
-
-        this.scene.background =
-            new THREE.Color(0x87b9e8);
-
+        this.scene.background = new THREE.Color(0x87b9e8);
         this.scene.fog = new THREE.Fog(
             0x87b9e8,
             3500,
@@ -132,58 +103,52 @@ this.worldUpAxis =
     }
 
     createCamera() {
-    const width = Math.max(
-        this.container.clientWidth,
-        1
-    );
+        const width = Math.max(
+            this.container.clientWidth,
+            1
+        );
 
-    const height = Math.max(
-        this.container.clientHeight,
-        1
-    );
+        const height = Math.max(
+            this.container.clientHeight,
+            1
+        );
 
-    this.camera =
-        new THREE.PerspectiveCamera(
+        this.camera = new THREE.PerspectiveCamera(
             58,
             width / height,
             0.1,
             30000
         );
 
-    this.camera.position.set(
-        0,
-        4.62,
-        1263
-    );
+        this.camera.position.set(
+            0,
+            5.62,
+            1268
+        );
 
-    this.camera.lookAt(
-        0,
-        1.62,
-        1232
-    );
-}
+        this.camera.lookAt(
+            0,
+            1.72,
+            1250
+        );
+    }
 
     createRenderer() {
-        const startupStatus =
-            document.querySelector(
-                "#startup-status"
-            );
+        const startupStatus = document.querySelector(
+            "#startup-status"
+        );
 
         if (startupStatus) {
             startupStatus.remove();
         }
 
-        this.renderer =
-            new THREE.WebGLRenderer({
-                antialias: true,
-                powerPreference: "high-performance"
-            });
+        this.renderer = new THREE.WebGLRenderer({
+            antialias: true,
+            powerPreference: "high-performance"
+        });
 
         this.renderer.setPixelRatio(
-            Math.min(
-                window.devicePixelRatio,
-                2
-            )
+            Math.min(window.devicePixelRatio, 2)
         );
 
         this.renderer.setSize(
@@ -192,12 +157,9 @@ this.worldUpAxis =
             false
         );
 
-        this.renderer.outputColorSpace =
-            THREE.SRGBColorSpace;
-
+        this.renderer.outputColorSpace = THREE.SRGBColorSpace;
         this.renderer.shadowMap.enabled = true;
-        this.renderer.shadowMap.type =
-            THREE.PCFSoftShadowMap;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
         this.container.appendChild(
             this.renderer.domElement
@@ -205,20 +167,18 @@ this.worldUpAxis =
     }
 
     createLights() {
-        const hemisphereLight =
-            new THREE.HemisphereLight(
-                0xd9efff,
-                0x3d5134,
-                2
-            );
+        const hemisphereLight = new THREE.HemisphereLight(
+            0xd9efff,
+            0x3d5134,
+            2
+        );
 
         this.scene.add(hemisphereLight);
 
-        const sunlight =
-            new THREE.DirectionalLight(
-                0xffffff,
-                2.4
-            );
+        const sunlight = new THREE.DirectionalLight(
+            0xffffff,
+            2.4
+        );
 
         sunlight.position.set(
             900,
@@ -227,12 +187,7 @@ this.worldUpAxis =
         );
 
         sunlight.castShadow = true;
-
-        sunlight.shadow.mapSize.set(
-            2048,
-            2048
-        );
-
+        sunlight.shadow.mapSize.set(2048, 2048);
         sunlight.shadow.camera.left = -2200;
         sunlight.shadow.camera.right = 2200;
         sunlight.shadow.camera.top = 2200;
@@ -244,35 +199,31 @@ this.worldUpAxis =
     }
 
     createGround() {
-        const ground =
-            new THREE.Mesh(
-                new THREE.PlaneGeometry(
-                    20000,
-                    20000
-                ),
-                new THREE.MeshStandardMaterial({
-                    color: 0x557744,
-                    roughness: 1,
-                    metalness: 0
-                })
-            );
+        const ground = new THREE.Mesh(
+            new THREE.PlaneGeometry(
+                20000,
+                20000
+            ),
+            new THREE.MeshStandardMaterial({
+                color: 0x557744,
+                roughness: 1,
+                metalness: 0
+            })
+        );
 
         ground.name = "AirportGround";
-        ground.rotation.x =
-            -Math.PI / 2;
-
+        ground.rotation.x = -Math.PI / 2;
         ground.position.y = -0.01;
         ground.receiveShadow = true;
 
         this.scene.add(ground);
 
-        const grid =
-            new THREE.GridHelper(
-                5000,
-                100,
-                0x73896c,
-                0x5f7659
-            );
+        const grid = new THREE.GridHelper(
+            5000,
+            100,
+            0x73896c,
+            0x5f7659
+        );
 
         grid.name = "DevelopmentGrid";
         grid.position.y = 0.005;
@@ -284,9 +235,7 @@ this.worldUpAxis =
     }
 
     createAirport() {
-        const airportGroup =
-            new THREE.Group();
-
+        const airportGroup = new THREE.Group();
         airportGroup.name = "JFKAirport";
 
         airportGroup.add(
@@ -298,43 +247,38 @@ this.worldUpAxis =
     }
 
     createAircraft() {
-    this.aircraft = createSky172();
+        this.aircraft = createSky172();
 
-    this.aircraft.position.set(
-        0,
-        0.12,
-        1250
-    );
+        this.aircraft.position.set(
+            0,
+            0.12,
+            1250
+        );
 
-    this.aircraft.rotation.order =
-        "YXZ";
+        this.aircraft.rotation.order = "YXZ";
 
-    this.scene.add(
-        this.aircraft
-    );
+        this.scene.add(this.aircraft);
+        this.updateAircraftRotation();
 
-    this.updateAircraftRotation();
+        this.camera.position.set(
+            this.aircraft.position.x,
+            this.aircraft.position.y + 5.5,
+            this.aircraft.position.z + 18
+        );
 
-    this.camera.position.set(
-        this.aircraft.position.x,
-        this.aircraft.position.y + 4.5,
-        this.aircraft.position.z + 13
-    );
+        this.smoothedCameraTarget.set(
+            this.aircraft.position.x,
+            this.aircraft.position.y + 1.6,
+            this.aircraft.position.z
+        );
 
-    this.smoothedCameraTarget.set(
-        this.aircraft.position.x,
-        this.aircraft.position.y + 1.5,
-        this.aircraft.position.z - 18
-    );
-
-    this.camera.lookAt(
-        this.smoothedCameraTarget
-    );
-}
+        this.camera.lookAt(
+            this.smoothedCameraTarget
+        );
+    }
 
     createHUD() {
         this.hud = new FlightHUD();
-
         this.updateHUD();
     }
 
@@ -368,11 +312,7 @@ this.worldUpAxis =
             "Space"
         ];
 
-        if (
-            controlledKeys.includes(
-                event.code
-            )
-        ) {
+        if (controlledKeys.includes(event.code)) {
             event.preventDefault();
         }
 
@@ -383,25 +323,17 @@ this.worldUpAxis =
         this.keys.delete(event.code);
     }
 
-    isActionActive(
-        keyboardCodes,
-        touchAction
-    ) {
-        const keyboardActive =
-            keyboardCodes.some(
-                (code) => {
-                    return this.keys.has(code);
-                }
-            );
+    isActionActive(keyboardCodes, touchAction) {
+        const keyboardActive = keyboardCodes.some(
+            (code) => this.keys.has(code)
+        );
 
-        const touchActive =
-            this.hud?.isControlActive(
-                touchAction
-            );
+        const touchActive = this.hud?.isControlActive(
+            touchAction
+        );
 
         return Boolean(
-            keyboardActive ||
-            touchActive
+            keyboardActive || touchActive
         );
     }
 
@@ -428,48 +360,36 @@ this.worldUpAxis =
                 throttleRate * deltaTime;
         }
 
-        this.flightState.throttle =
-            THREE.MathUtils.clamp(
-                this.flightState.throttle,
-                0,
-                1
-            );
+        this.flightState.throttle = THREE.MathUtils.clamp(
+            this.flightState.throttle,
+            0,
+            1
+        );
 
-        this.flightState.brakeActive =
-            this.isActionActive(
-                ["Space"],
-                "brake"
-            );
+        this.flightState.brakeActive = this.isActionActive(
+            ["Space"],
+            "brake"
+        );
 
-        const turnLeft =
-            this.isActionActive(
-                [
-                    "KeyA",
-                    "ArrowLeft"
-                ],
-                "turnLeft"
-            );
+        const turnLeft = this.isActionActive(
+            ["KeyA", "ArrowLeft"],
+            "turnLeft"
+        );
 
-        const turnRight =
-            this.isActionActive(
-                [
-                    "KeyD",
-                    "ArrowRight"
-                ],
-                "turnRight"
-            );
+        const turnRight = this.isActionActive(
+            ["KeyD", "ArrowRight"],
+            "turnRight"
+        );
 
-        const pitchUp =
-            this.isActionActive(
-                ["ArrowDown"],
-                "pitchUp"
-            );
+        const pitchUp = this.isActionActive(
+            ["ArrowDown"],
+            "pitchUp"
+        );
 
-        const pitchDown =
-            this.isActionActive(
-                ["ArrowUp"],
-                "pitchDown"
-            );
+        const pitchDown = this.isActionActive(
+            ["ArrowUp"],
+            "pitchDown"
+        );
 
         if (this.flightState.airborne) {
             this.updateAirControls(
@@ -497,78 +417,59 @@ this.worldUpAxis =
         pitchUp,
         pitchDown
     ) {
-        const speed =
-            this.flightState
-                .speedMetersPerSecond;
+        const speed = this.flightState.speedMetersPerSecond;
 
-        const steeringEffect =
-            THREE.MathUtils.clamp(
-                speed / 4,
-                0,
-                1
-            );
+        const steeringEffect = THREE.MathUtils.clamp(
+            speed / 4,
+            0,
+            1
+        );
 
-        const steeringRate =
-            THREE.MathUtils.degToRad(24);
+        const steeringRate = THREE.MathUtils.degToRad(24);
 
         if (turnLeft) {
             this.flightState.heading +=
-                steeringRate *
-                steeringEffect *
-                deltaTime;
+                steeringRate * steeringEffect * deltaTime;
         }
 
         if (turnRight) {
             this.flightState.heading -=
-                steeringRate *
-                steeringEffect *
-                deltaTime;
+                steeringRate * steeringEffect * deltaTime;
         }
 
         const takeoffSpeed = 27;
 
-        if (
-            pitchUp &&
-            speed >= takeoffSpeed
-        ) {
+        if (pitchUp && speed >= takeoffSpeed) {
             this.flightState.pitch +=
-                THREE.MathUtils.degToRad(18) *
-                deltaTime;
+                THREE.MathUtils.degToRad(18) * deltaTime;
         }
 
         if (pitchDown) {
             this.flightState.pitch -=
-                THREE.MathUtils.degToRad(18) *
-                deltaTime;
+                THREE.MathUtils.degToRad(18) * deltaTime;
         }
 
-        this.flightState.pitch =
-            THREE.MathUtils.clamp(
-                this.flightState.pitch,
-                0,
-                THREE.MathUtils.degToRad(12)
-            );
-
-        const releaseRate =
-            THREE.MathUtils.degToRad(7);
+        this.flightState.pitch = THREE.MathUtils.clamp(
+            this.flightState.pitch,
+            0,
+            THREE.MathUtils.degToRad(12)
+        );
 
         if (!pitchUp && !pitchDown) {
-            this.flightState.pitch =
-                THREE.MathUtils.damp(
-                    this.flightState.pitch,
-                    0,
-                    releaseRate,
-                    deltaTime
-                );
-        }
-
-        this.flightState.roll =
-            THREE.MathUtils.damp(
-                this.flightState.roll,
+            this.flightState.pitch = THREE.MathUtils.damp(
+                this.flightState.pitch,
                 0,
-                8,
+                7,
                 deltaTime
             );
+        }
+
+        this.flightState.roll = THREE.MathUtils.damp(
+            this.flightState.roll,
+            0,
+            8,
+            deltaTime
+        );
     }
 
     updateAirControls(
@@ -578,240 +479,174 @@ this.worldUpAxis =
         pitchUp,
         pitchDown
     ) {
-        const pitchRate =
-            THREE.MathUtils.degToRad(22);
-
-        const rollRate =
-            THREE.MathUtils.degToRad(42);
+        const pitchRate = THREE.MathUtils.degToRad(22);
+        const rollRate = THREE.MathUtils.degToRad(42);
 
         if (pitchUp) {
-            this.flightState.pitch +=
-                pitchRate * deltaTime;
+            this.flightState.pitch += pitchRate * deltaTime;
         }
 
         if (pitchDown) {
-            this.flightState.pitch -=
-                pitchRate * deltaTime;
+            this.flightState.pitch -= pitchRate * deltaTime;
         }
 
         if (turnLeft) {
-            this.flightState.roll +=
-                rollRate * deltaTime;
+            this.flightState.roll += rollRate * deltaTime;
         }
 
         if (turnRight) {
-            this.flightState.roll -=
-                rollRate * deltaTime;
+            this.flightState.roll -= rollRate * deltaTime;
         }
 
         if (!turnLeft && !turnRight) {
-            this.flightState.roll =
-                THREE.MathUtils.damp(
-                    this.flightState.roll,
-                    0,
-                    2.5,
-                    deltaTime
-                );
+            this.flightState.roll = THREE.MathUtils.damp(
+                this.flightState.roll,
+                0,
+                2.5,
+                deltaTime
+            );
         }
 
-        this.flightState.pitch =
-            THREE.MathUtils.clamp(
-                this.flightState.pitch,
-                THREE.MathUtils.degToRad(-18),
-                THREE.MathUtils.degToRad(24)
-            );
+        this.flightState.pitch = THREE.MathUtils.clamp(
+            this.flightState.pitch,
+            THREE.MathUtils.degToRad(-18),
+            THREE.MathUtils.degToRad(24)
+        );
 
-        this.flightState.roll =
-            THREE.MathUtils.clamp(
-                this.flightState.roll,
-                THREE.MathUtils.degToRad(-45),
-                THREE.MathUtils.degToRad(45)
-            );
+        this.flightState.roll = THREE.MathUtils.clamp(
+            this.flightState.roll,
+            THREE.MathUtils.degToRad(-45),
+            THREE.MathUtils.degToRad(45)
+        );
 
         this.flightState.heading +=
-            Math.sin(
-                this.flightState.roll
-            ) *
+            Math.sin(this.flightState.roll) *
             THREE.MathUtils.degToRad(18) *
             deltaTime;
     }
 
     updateGroundPhysics(deltaTime) {
-        const speed =
-            this.flightState
-                .speedMetersPerSecond;
+        const speed = this.flightState.speedMetersPerSecond;
 
         const engineAcceleration =
-            4.8 *
-            this.flightState.throttle;
+            4.8 * this.flightState.throttle;
 
         const rollingResistance = 0.7;
-
-        const aerodynamicDrag =
-            0.0022 *
-            speed *
-            speed;
+        const aerodynamicDrag = 0.0022 * speed * speed;
 
         let acceleration =
             engineAcceleration -
             rollingResistance -
             aerodynamicDrag;
 
-        if (
-            this.flightState.brakeActive
-        ) {
+        if (this.flightState.brakeActive) {
             acceleration -= 12;
         }
 
-        this.flightState
-            .speedMetersPerSecond +=
-                acceleration * deltaTime;
+        this.flightState.speedMetersPerSecond +=
+            acceleration * deltaTime;
 
-        this.flightState
-            .speedMetersPerSecond =
-                THREE.MathUtils.clamp(
-                    this.flightState
-                        .speedMetersPerSecond,
-                    0,
-                    62
-                );
+        this.flightState.speedMetersPerSecond =
+            THREE.MathUtils.clamp(
+                this.flightState.speedMetersPerSecond,
+                0,
+                62
+            );
 
         const takeoffSpeed = 27;
-        const takeoffPitch =
-            THREE.MathUtils.degToRad(5);
+        const takeoffPitch = THREE.MathUtils.degToRad(5);
 
         if (
-            this.flightState
-                .speedMetersPerSecond >=
+            this.flightState.speedMetersPerSecond >=
                 takeoffSpeed &&
-            this.flightState.pitch >=
-                takeoffPitch
+            this.flightState.pitch >= takeoffPitch
         ) {
             this.flightState.airborne = true;
             this.flightState.verticalSpeed = 1.5;
         }
 
-        this.updateForwardMovement(
-            deltaTime
-        );
+        this.updateForwardMovement(deltaTime);
 
         this.aircraft.position.y = 0.12;
-
         this.flightState.altitudeMeters = 0;
     }
 
     updateAirPhysics(deltaTime) {
-        const speed =
-            this.flightState
-                .speedMetersPerSecond;
+        const speed = this.flightState.speedMetersPerSecond;
 
         const engineAcceleration =
-            this.flightState.throttle *
-            2.6;
+            this.flightState.throttle * 2.6;
 
-        const aerodynamicDrag =
-            0.0016 *
-            speed *
-            speed;
+        const aerodynamicDrag = 0.0016 * speed * speed;
 
         const acceleration =
             engineAcceleration -
             aerodynamicDrag -
             0.15;
 
-        this.flightState
-            .speedMetersPerSecond +=
-                acceleration * deltaTime;
+        this.flightState.speedMetersPerSecond +=
+            acceleration * deltaTime;
 
-        this.flightState
-            .speedMetersPerSecond =
-                THREE.MathUtils.clamp(
-                    this.flightState
-                        .speedMetersPerSecond,
-                    18,
-                    75
-                );
+        this.flightState.speedMetersPerSecond =
+            THREE.MathUtils.clamp(
+                this.flightState.speedMetersPerSecond,
+                18,
+                75
+            );
 
         const pitchLift =
-            Math.sin(
-                this.flightState.pitch
-            ) *
+            Math.sin(this.flightState.pitch) *
             speed *
             0.52;
 
-        const baseLift =
-            Math.max(
-                0,
-                speed - 23
-            ) *
-            0.08;
-
+        const baseLift = Math.max(0, speed - 23) * 0.08;
         const gravityEffect = 1.2;
 
         const targetVerticalSpeed =
-            pitchLift +
-            baseLift -
-            gravityEffect;
+            pitchLift + baseLift - gravityEffect;
 
-        this.flightState.verticalSpeed =
-            THREE.MathUtils.damp(
-                this.flightState.verticalSpeed,
-                targetVerticalSpeed,
-                2,
-                deltaTime
-            );
-
-        this.aircraft.position.y +=
-            this.flightState
-                .verticalSpeed *
-            deltaTime;
-
-        this.updateForwardMovement(
+        this.flightState.verticalSpeed = THREE.MathUtils.damp(
+            this.flightState.verticalSpeed,
+            targetVerticalSpeed,
+            2,
             deltaTime
         );
+
+        this.aircraft.position.y +=
+            this.flightState.verticalSpeed * deltaTime;
+
+        this.updateForwardMovement(deltaTime);
 
         if (
             this.aircraft.position.y <= 0.12 &&
             this.flightState.verticalSpeed <= 0
         ) {
             this.aircraft.position.y = 0.12;
-
             this.flightState.airborne = false;
             this.flightState.verticalSpeed = 0;
-
-            this.flightState.pitch =
-                Math.max(
-                    0,
-                    this.flightState.pitch
-                );
-
+            this.flightState.pitch = Math.max(
+                0,
+                this.flightState.pitch
+            );
             this.flightState.roll = 0;
         }
 
-        this.flightState.altitudeMeters =
-            Math.max(
-                0,
-                this.aircraft.position.y -
-                0.12
-            );
+        this.flightState.altitudeMeters = Math.max(
+            0,
+            this.aircraft.position.y - 0.12
+        );
     }
 
     updateForwardMovement(deltaTime) {
         this.forwardVector.set(
-            -Math.sin(
-                this.flightState.heading
-            ),
+            -Math.sin(this.flightState.heading),
             0,
-            -Math.cos(
-                this.flightState.heading
-            )
+            -Math.cos(this.flightState.heading)
         );
 
         this.aircraft.position.addScaledVector(
             this.forwardVector,
-            this.flightState
-                .speedMetersPerSecond *
-            deltaTime
+            this.flightState.speedMetersPerSecond * deltaTime
         );
     }
 
@@ -825,120 +660,80 @@ this.worldUpAxis =
     }
 
     updatePropeller(deltaTime) {
-        const propeller =
-            this.aircraft?.userData
-                .propeller;
+        const propeller = this.aircraft?.userData.propeller;
 
         if (!propeller) {
             return;
         }
 
         const rotationSpeed =
-            5 +
-            this.flightState.throttle *
-            70;
+            5 + this.flightState.throttle * 70;
 
-        propeller.rotation.z +=
-            rotationSpeed * deltaTime;
+        propeller.rotation.z += rotationSpeed * deltaTime;
     }
 
     updateCamera(deltaTime) {
-    if (
-        !this.aircraft ||
-        !this.camera
-    ) {
-        return;
-    }
+        if (!this.aircraft || !this.camera) {
+            return;
+        }
 
-    this.cameraHeadingQuaternion
-        .setFromAxisAngle(
+        this.cameraHeadingQuaternion.setFromAxisAngle(
             this.worldUpAxis,
             this.flightState.heading
         );
 
-    this.desiredCameraPosition
-        .copy(
-            this.cameraOffset
-        )
-        .applyQuaternion(
-            this.cameraHeadingQuaternion
-        )
-        .add(
-            this.aircraft.position
+        this.desiredCameraPosition
+            .copy(this.cameraOffset)
+            .applyQuaternion(this.cameraHeadingQuaternion)
+            .add(this.aircraft.position);
+
+        this.desiredCameraTarget
+            .copy(this.cameraTargetOffset)
+            .applyQuaternion(this.cameraHeadingQuaternion)
+            .add(this.aircraft.position);
+
+        const positionSmoothing =
+            1 - Math.exp(-8 * deltaTime);
+
+        const targetSmoothing =
+            1 - Math.exp(-12 * deltaTime);
+
+        this.camera.position.lerp(
+            this.desiredCameraPosition,
+            positionSmoothing
         );
 
-    this.desiredCameraTarget
-        .copy(
-            this.cameraTargetOffset
-        )
-        .applyQuaternion(
-            this.cameraHeadingQuaternion
-        )
-        .add(
-            this.aircraft.position
+        this.smoothedCameraTarget.lerp(
+            this.desiredCameraTarget,
+            targetSmoothing
         );
 
-    const positionSmoothing =
-        1 -
-        Math.exp(
-            -8 * deltaTime
+        this.camera.lookAt(
+            this.smoothedCameraTarget
         );
+    }
 
-    const targetSmoothing =
-        1 -
-        Math.exp(
-            -12 * deltaTime
-        );
-
-    this.camera.position.lerp(
-        this.desiredCameraPosition,
-        positionSmoothing
-    );
-
-    this.smoothedCameraTarget.lerp(
-        this.desiredCameraTarget,
-        targetSmoothing
-    );
-
-    this.camera.lookAt(
-        this.smoothedCameraTarget
-    );
-}
-    
     updateHUD() {
         if (!this.hud || !this.aircraft) {
             return;
         }
 
         this.hud.update({
-            aircraftName:
-                "NOVA SKY 172",
-
+            aircraftName: "NOVA SKY 172",
             speedKmh:
-                this.flightState
-                    .speedMetersPerSecond *
-                3.6,
-
+                this.flightState.speedMetersPerSecond * 3.6,
             altitudeMeters:
-                this.flightState
-                    .altitudeMeters,
-
+                this.flightState.altitudeMeters,
             throttle:
-                this.flightState
-                    .throttle,
-
+                this.flightState.throttle,
             pitchDegrees:
                 THREE.MathUtils.radToDeg(
                     this.flightState.pitch
                 ),
-
             brakeActive:
-                this.flightState
-                    .brakeActive,
-
+                this.flightState.brakeActive,
             airborne:
-                this.flightState
-                    .airborne
+                this.flightState.airborne
         });
     }
 
@@ -950,13 +745,9 @@ this.worldUpAxis =
         this.updateControls(deltaTime);
 
         if (this.flightState.airborne) {
-            this.updateAirPhysics(
-                deltaTime
-            );
+            this.updateAirPhysics(deltaTime);
         } else {
-            this.updateGroundPhysics(
-                deltaTime
-            );
+            this.updateGroundPhysics(deltaTime);
         }
 
         this.updateAircraftRotation();
@@ -1003,16 +794,11 @@ this.worldUpAxis =
             1
         );
 
-        this.camera.aspect =
-            width / height;
-
+        this.camera.aspect = width / height;
         this.camera.updateProjectionMatrix();
 
         this.renderer.setPixelRatio(
-            Math.min(
-                window.devicePixelRatio,
-                2
-            )
+            Math.min(window.devicePixelRatio, 2)
         );
 
         this.renderer.setSize(
@@ -1029,9 +815,7 @@ this.worldUpAxis =
 
         this.isRunning = false;
 
-        if (
-            this.animationFrameId !== null
-        ) {
+        if (this.animationFrameId !== null) {
             window.cancelAnimationFrame(
                 this.animationFrameId
             );
@@ -1058,7 +842,6 @@ this.worldUpAxis =
 
     dispose() {
         this.stop();
-
         this.hud?.dispose();
 
         this.scene?.traverse((object) => {
@@ -1066,16 +849,10 @@ this.worldUpAxis =
                 object.geometry.dispose();
             }
 
-            if (
-                Array.isArray(
-                    object.material
-                )
-            ) {
-                object.material.forEach(
-                    (material) => {
-                        material.dispose();
-                    }
-                );
+            if (Array.isArray(object.material)) {
+                object.material.forEach((material) => {
+                    material.dispose();
+                });
             } else if (object.material) {
                 object.material.dispose();
             }
