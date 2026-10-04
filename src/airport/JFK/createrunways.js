@@ -2,29 +2,29 @@ import * as THREE from "three";
 
 const RUNWAY_LENGTH = 3500;
 const RUNWAY_WIDTH = 60;
-const RUNWAY_HEIGHT = 0.12;
+const RUNWAY_HEIGHT = 0.16;
 
 const SHOULDER_WIDTH = 7;
-const SHOULDER_HEIGHT = 0.08;
-const SHOULDER_TOP = 0.1;
+const SHOULDER_HEIGHT = 0.12;
+const SHOULDER_TOP_Y = 0.14;
 
 function createRunwayMaterial() {
     return new THREE.MeshStandardMaterial({
-        color: 0x25282b,
+        color: 0x292d31,
         roughness: 0.96,
         metalness: 0,
-        depthWrite: true,
-        depthTest: true
+        depthTest: true,
+        depthWrite: true
     });
 }
 
 function createShoulderMaterial() {
     return new THREE.MeshStandardMaterial({
-        color: 0x45494d,
+        color: 0x555b61,
         roughness: 1,
         metalness: 0,
-        depthWrite: true,
-        depthTest: true
+        depthTest: true,
+        depthWrite: true
     });
 }
 
@@ -43,9 +43,21 @@ function createShoulder(
 
     shoulder.position.set(
         xPosition,
-        SHOULDER_TOP -
+        SHOULDER_TOP_Y -
             SHOULDER_HEIGHT / 2,
         0
+    );
+
+    shoulder.rotation.set(
+        0,
+        0,
+        0
+    );
+
+    shoulder.scale.set(
+        1,
+        1,
+        1
     );
 
     shoulder.castShadow = false;
@@ -60,12 +72,33 @@ export function createRunways() {
 
     runwayGroup.name = "JFKRunways";
 
-    const runway = new THREE.Mesh(
+    runwayGroup.position.set(
+        0,
+        0,
+        0
+    );
+
+    runwayGroup.rotation.set(
+        0,
+        0,
+        0
+    );
+
+    runwayGroup.scale.set(
+        1,
+        1,
+        1
+    );
+
+    const runwayGeometry =
         new THREE.BoxGeometry(
             RUNWAY_WIDTH,
             RUNWAY_HEIGHT,
             RUNWAY_LENGTH
-        ),
+        );
+
+    const runway = new THREE.Mesh(
+        runwayGeometry,
         createRunwayMaterial()
     );
 
@@ -77,8 +110,20 @@ export function createRunways() {
         0
     );
 
+    runway.rotation.set(
+        0,
+        0,
+        0
+    );
+
+    runway.scale.set(
+        1,
+        1,
+        1
+    );
+
     runway.castShadow = false;
-    runway.receiveShadow = true;
+    runway.receiveShadow = false;
 
     runwayGroup.add(runway);
 
@@ -95,7 +140,7 @@ export function createRunways() {
     const shoulderOffset =
         RUNWAY_WIDTH / 2 +
         SHOULDER_WIDTH / 2 +
-        0.02;
+        0.05;
 
     const leftShoulder =
         createShoulder(
