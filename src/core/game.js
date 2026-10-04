@@ -12,6 +12,10 @@ import {
     createSky172
 } from "../aircraft/general/createsky172.js";
 
+import {
+    FlightHUD
+} from "../ui/flighthud.js";
+
 export class Game {
     constructor(container) {
         this.container = container;
@@ -22,12 +26,49 @@ export class Game {
         this.clock = new THREE.Clock();
 
         this.aircraft = null;
+        this.hud = null;
+
+        this.keys = new Set();
+
+        this.flightState = {
+            throttle: 0,
+            speedMetersPerSecond: 0,
+            brakeActive: false,
+            altitudeMeters: 0
+        };
+
+        this.cameraOffset =
+            new THREE.Vector3(
+                14,
+                7,
+                24
+            );
+
+        this.cameraTargetOffset =
+            new THREE.Vector3(
+                0,
+                1.5,
+                -10
+            );
+
+        this.desiredCameraPosition =
+            new THREE.Vector3();
+
+        this.desiredCameraTarget =
+            new THREE.Vector3();
 
         this.animationFrameId = null;
         this.isRunning = false;
 
         this.animate = this.animate.bind(this);
-        this.handleResize = this.handleResize.bind(this);
+        this.handleResize =
+            this.handleResize.bind(this);
+
+        this.handleKeyDown =
+            this.handleKeyDown.bind(this);
+
+        this.handleKeyUp =
+            this.handleKeyUp.bind(this);
     }
 
     start() {
@@ -42,11 +83,8 @@ export class Game {
         this.createGround();
         this.createAirport();
         this.createAircraft();
-
-        window.addEventListener(
-            "resize",
-            this.handleResize
-        );
+        this.createHUD();
+        this.bindEvents();
 
         this.isRunning = true;
         this.clock.start();
@@ -90,15 +128,9 @@ export class Game {
             );
 
         this.camera.position.set(
-            18,
+            14,
             8,
-            1278
-        );
-
-        this.camera.lookAt(
-            0,
-            1.7,
-            1242
+            1276
         );
     }
 
@@ -221,7 +253,7 @@ export class Game {
         grid.name = "DevelopmentGrid";
         grid.position.y = 0.005;
         grid.material.transparent = true;
-        grid.material.opacity = 0.2;
+        grid.material.opacity = 0.16;
         grid.material.depthWrite = false;
 
         this.scene.add(grid);
@@ -264,11 +296,243 @@ export class Game {
 
         this.scene.add(this.aircraft);
 
-        this.camera.lookAt(
-            this.aircraft.position.x,
-            this.aircraft.position.y + 1.6,
-            this.aircraft.position.z - 8
+        this.updateCamera(1);
+    }
+
+    createHUD() {
+        this.hud = new FlightHUD();
+
+        this.updateHUD();
+    }
+
+    bindEvents() {
+        window.addEventListener(
+            "resize",
+            this.handleResize
         );
+
+        window.addEventListener(
+            "keydown",
+            this.handleKeyDown
+        );
+
+        window.addEventListener(
+            "keyup",
+            this.handleKeyUp
+        );
+    }
+
+    handleKeyDown(event) {
+        if (
+            event.code === "KeyW" ||
+            event.code === "KeyS" ||
+            event.code === "Space"
+        ) {
+            event.preventDefault();
+        }
+
+        this.keys.add(event.code);
+    }
+
+    handleKeyUp(event) {
+        this.keys.delete(event.code);
+    }
+
+    isThrottleUpActive() {
+        return (
+            this.keys.has("KeyW") ||
+            this.hud?.isControlActive(
+                "throttleUp"
+            )
+        );
+    }
+
+    isThrottleDownActive() {
+        return (
+            this.keys.has("KeyS") ||
+            this.hud?.isControlActive(
+                "throttleDown"
+            )
+        );
+    }
+
+    isBrakeActive() {
+        return (
+            this.keys.has("Space") ||
+            this.hud?.isControlActive(
+                "brake"
+            )
+        );
+    }
+
+    updateControls(deltaTime) {
+        const throttleChangeRate = 0.35;
+
+        if (this.isThrottleUpActive()) {
+            this.flightState.throttle +=
+                throttleChangeRate * deltaTime;
+        }
+
+        if (this.isThrottleDownActive()) {
+            this.flightState.throttle -=
+                throttleChangeRate * deltaTime;
+        }
+
+        this.flightState.throttle =
+            THREE.MathUtils.clamp(
+                this.flightState.throttle,
+                0,
+                1
+            );
+
+        this.flightState.brakeActive =
+            this.isBrakeActive();
+    }
+
+    updateGroundPhysics(deltaTime) {
+        const maximumGroundSpeed = 62;
+        const engineAcceleration = 4.8;
+        const rollingResistance = 0.7;
+        const aerodynamicResistance = 0.0022;
+        const brakeDeceleration = 12;
+
+        const speed =
+            this.flightState
+                .speedMetersPerSecond;
+
+        const engineForce =
+            this.flightState.throttle *
+            engineAcceleration;
+
+        const dragForce =
+            rollingResistance +
+            aerodynamicResistance *
+            speed *
+            speed;
+
+        let acceleration =
+            engineForce - dragForce;
+
+        if (
+            this.flightState.brakeActive
+        ) {
+            acceleration -=
+                brakeDeceleration;
+        }
+
+        this.flightState
+            .speedMetersPerSecond +=
+                acceleration * deltaTime;
+
+        this.flightState
+            .speedMetersPerSecond =
+                THREE.MathUtils.clamp(
+                    this.flightState
+                        .speedMetersPerSecond,
+                    0,
+                    maximumGroundSpeed
+                );
+
+        this.aircraft.position.z -=
+            this.flightState
+                .speedMetersPerSecond *
+            deltaTime;
+
+        this.flightState.altitudeMeters =
+            Math.max(
+                0,
+                this.aircraft.position.y -
+                0.12
+            );
+    }
+
+    updatePropeller(deltaTime) {
+        const propeller =
+            this.aircraft?.userData
+                .propeller;
+
+        if (!propeller) {
+            return;
+        }
+
+        const idleRotationSpeed = 5;
+
+        const throttleRotationSpeed =
+            this.flightState.throttle * 65;
+
+        propeller.rotation.z +=
+            (
+                idleRotationSpeed +
+                throttleRotationSpeed
+            ) *
+            deltaTime;
+    }
+
+    updateCamera(deltaTime) {
+        if (!this.aircraft) {
+            return;
+        }
+
+        this.desiredCameraPosition
+            .copy(this.cameraOffset)
+            .applyQuaternion(
+                this.aircraft.quaternion
+            )
+            .add(
+                this.aircraft.position
+            );
+
+        this.desiredCameraTarget
+            .copy(this.cameraTargetOffset)
+            .applyQuaternion(
+                this.aircraft.quaternion
+            )
+            .add(
+                this.aircraft.position
+            );
+
+        const cameraSmoothing =
+            1 -
+            Math.exp(
+                -5 * deltaTime
+            );
+
+        this.camera.position.lerp(
+            this.desiredCameraPosition,
+            cameraSmoothing
+        );
+
+        this.camera.lookAt(
+            this.desiredCameraTarget
+        );
+    }
+
+    updateHUD() {
+        if (!this.hud || !this.aircraft) {
+            return;
+        }
+
+        this.hud.update({
+            aircraftName:
+                "NOVA SKY 172",
+
+            speedKmh:
+                this.flightState
+                    .speedMetersPerSecond *
+                3.6,
+
+            altitudeMeters:
+                this.flightState
+                    .altitudeMeters,
+
+            throttle:
+                this.flightState
+                    .throttle,
+
+            brakeActive:
+                this.flightState
+                    .brakeActive
+        });
     }
 
     update(deltaTime) {
@@ -276,13 +540,11 @@ export class Game {
             return;
         }
 
-        const propeller =
-            this.aircraft.userData.propeller;
-
-        if (propeller) {
-            propeller.rotation.z +=
-                deltaTime * 18;
-        }
+        this.updateControls(deltaTime);
+        this.updateGroundPhysics(deltaTime);
+        this.updatePropeller(deltaTime);
+        this.updateCamera(deltaTime);
+        this.updateHUD();
     }
 
     animate() {
@@ -360,6 +622,48 @@ export class Game {
             this.handleResize
         );
 
+        window.removeEventListener(
+            "keydown",
+            this.handleKeyDown
+        );
+
+        window.removeEventListener(
+            "keyup",
+            this.handleKeyUp
+        );
+
+        this.keys.clear();
         this.clock.stop();
+    }
+
+    dispose() {
+        this.stop();
+
+        this.hud?.dispose();
+
+        this.scene?.traverse((object) => {
+            if (object.geometry) {
+                object.geometry.dispose();
+            }
+
+            if (Array.isArray(object.material)) {
+                object.material.forEach(
+                    (material) => {
+                        material.dispose();
+                    }
+                );
+            } else if (object.material) {
+                object.material.dispose();
+            }
+        });
+
+        this.renderer?.dispose();
+        this.renderer?.domElement.remove();
+
+        this.aircraft = null;
+        this.hud = null;
+        this.scene = null;
+        this.camera = null;
+        this.renderer = null;
     }
 }
