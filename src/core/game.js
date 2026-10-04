@@ -52,14 +52,14 @@ export class Game {
 
         this.cameraOffset = new THREE.Vector3(
             0,
-            4.8,
-            16
+            5.5,
+            18
         );
 
         this.cameraTargetOffset = new THREE.Vector3(
             0,
-            1.8,
-            -5
+            2.0,
+            -10
         );
 
         this.cockpitOffset = new THREE.Vector3(
@@ -142,14 +142,14 @@ export class Game {
 
         this.camera.position.set(
             0,
-            4.92,
-            1266
+            5.62,
+            1268
         );
 
         this.camera.lookAt(
             0,
             1.92,
-            1245
+            1228
         );
     }
 
@@ -281,15 +281,15 @@ export class Game {
         this.updateAircraftRotation();
 
         this.camera.position.set(
-            this.aircraft.position.x,
-            this.aircraft.position.y + 4.8,
-            this.aircraft.position.z + 16
+            0,
+            this.aircraft.position.y + 5.5,
+            this.aircraft.position.z + 18
         );
 
         this.smoothedCameraTarget.set(
-            this.aircraft.position.x,
+            0,
             this.aircraft.position.y + 1.8,
-            this.aircraft.position.z - 5
+            this.aircraft.position.z - 22
         );
 
         this.camera.lookAt(
@@ -732,19 +732,33 @@ export class Game {
     updateChaseCamera(deltaTime) {
         void deltaTime;
 
-        this.desiredCameraPosition
-            .copy(this.cameraOffset)
-            .applyQuaternion(
-                this.cameraHeadingQuaternion
-            )
-            .add(this.aircraft.position);
+        if (!this.flightState.airborne) {
+            this.desiredCameraPosition.set(
+                0,
+                this.aircraft.position.y + 5.5,
+                this.aircraft.position.z + 18
+            );
 
-        this.desiredCameraTarget
-            .copy(this.cameraTargetOffset)
-            .applyQuaternion(
-                this.cameraHeadingQuaternion
-            )
-            .add(this.aircraft.position);
+            this.desiredCameraTarget.set(
+                0,
+                this.aircraft.position.y + 1.8,
+                this.aircraft.position.z - 22
+            );
+        } else {
+            this.desiredCameraPosition
+                .copy(this.cameraOffset)
+                .applyQuaternion(
+                    this.cameraHeadingQuaternion
+                )
+                .add(this.aircraft.position);
+
+            this.desiredCameraTarget
+                .copy(this.cameraTargetOffset)
+                .applyQuaternion(
+                    this.cameraHeadingQuaternion
+                )
+                .add(this.aircraft.position);
+        }
 
         this.camera.position.copy(
             this.desiredCameraPosition
