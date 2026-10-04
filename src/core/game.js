@@ -43,16 +43,16 @@ export class Game {
         };
 
         this.cameraOffset = new THREE.Vector3(
-            0,
-            5.5,
-            18
-        );
+    0,
+    3.6,
+    10
+);
 
-        this.cameraTargetOffset = new THREE.Vector3(
-            0,
-            1.6,
-            0
-        );
+this.cameraTargetOffset = new THREE.Vector3(
+    0,
+    1.4,
+    -4
+);
 
         this.desiredCameraPosition = new THREE.Vector3();
         this.desiredCameraTarget = new THREE.Vector3();
