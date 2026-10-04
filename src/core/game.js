@@ -1,7 +1,6 @@
 import * as THREE from "three";
-import { createRunways } from "../airport/JFK/createrunways.js";
-import { createRunwayMarkings } from "../airport/JFK/createrunwaymarkings.js";
 import { createSky172 } from "../aircraft/general/createsky172.js";
+import { createJFK } from "../airport/JFK/createjfk.js";
 
 export class Game {
     constructor(container) {
@@ -144,10 +143,7 @@ export class Game {
     }
 
     createAirport() {
-        const airport = new THREE.Group();
-        airport.name = "JFKAirport";
-        airport.add(createRunways(), createRunwayMarkings());
-        this.scene.add(airport);
+        this.scene.add(createJFK());
     }
 
     createAircraft() {
