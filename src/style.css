@@ -1,360 +1,95 @@
-export class FlightHUD {
-    constructor() {
-        this.root = null;
-        this.values = {};
-        this.controls = {};
+:root {
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
 
-        this.controlState = {
-            throttleUp: false,
-            throttleDown: false,
-            turnLeft: false,
-            turnRight: false,
-            pitchUp: false,
-            pitchDown: false,
-            brake: false
-        };
+    color: #ffffff;
+    background: #07111f;
+}
 
-        this.create();
-    }
+* {
+    box-sizing: border-box;
+}
 
-    create() {
-        this.root = document.createElement("div");
-        this.root.id = "flight-hud";
+html {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    overscroll-behavior: none;
+}
 
-        this.root.innerHTML = `
-            <div class="hud-panel">
-                <div class="hud-title">NOVA FLIGHT</div>
+body {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #07111f;
+    overscroll-behavior: none;
+    touch-action: none;
+}
 
-                <div class="hud-row">
-                    <span>AIRCRAFT</span>
-                    <strong id="hud-aircraft">NOVA SKY 172</strong>
-                </div>
+#app {
+    position: fixed;
+    inset: 0;
+    width: auto;
+    height: auto;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
 
-                <div class="hud-row">
-                    <span>TIME</span>
-                    <strong id="hud-time">00:00:00</strong>
-                </div>
-
-                <div class="hud-row">
-                    <span>SPD</span>
-                    <strong id="hud-speed">0 km/h</strong>
-                </div>
-
-                <div class="hud-row">
-                    <span>ALT</span>
-                    <strong id="hud-altitude">0 m</strong>
-                </div>
-
-                <div class="hud-row">
-                    <span>THR</span>
-                    <strong id="hud-throttle">0%</strong>
-                </div>
-
-                <div class="hud-row">
-                    <span>PITCH</span>
-                    <strong id="hud-pitch">0.0 deg</strong>
-                </div>
-
-                <div class="hud-row">
-                    <span>MODE</span>
-                    <strong id="hud-mode">GROUND</strong>
-                </div>
-
-                <div class="hud-row">
-                    <span>BRAKE</span>
-                    <strong id="hud-brake">OFF</strong>
-                </div>
-
-                <div class="hud-throttle-track">
-                    <div id="hud-throttle-fill"></div>
-                </div>
-            </div>
-
-            <div class="touch-controls touch-controls-left">
-                <div class="control-row">
-                    <button
-                        id="control-turn-left"
-                        class="control-button"
-                        type="button"
-                    >
-                        LEFT
-                    </button>
-
-                    <button
-                        id="control-turn-right"
-                        class="control-button"
-                        type="button"
-                    >
-                        RIGHT
-                    </button>
-                </div>
-
-                <div class="control-row">
-                    <button
-                        id="control-pitch-up"
-                        class="control-button control-button-primary"
-                        type="button"
-                    >
-                        PITCH +
-                    </button>
-
-                    <button
-                        id="control-pitch-down"
-                        class="control-button"
-                        type="button"
-                    >
-                        PITCH -
-                    </button>
-                </div>
-            </div>
-
-            <div class="touch-controls touch-controls-right">
-                <div class="control-row">
-                    <button
-                        id="control-throttle-up"
-                        class="control-button control-button-primary"
-                        type="button"
-                    >
-                        THR +
-                    </button>
-
-                    <button
-                        id="control-throttle-down"
-                        class="control-button"
-                        type="button"
-                    >
-                        THR -
-                    </button>
-                </div>
-
-                <button
-                    id="control-brake"
-                    class="control-button control-button-danger control-button-wide"
-                    type="button"
-                >
-                    BRAKE
-                </button>
-            </div>
-        `;
-
-        document.body.appendChild(this.root);
-
-        this.values.aircraft =
-            document.querySelector("#hud-aircraft");
-
-        this.values.time =
-            document.querySelector("#hud-time");
-
-        this.values.speed =
-            document.querySelector("#hud-speed");
-
-        this.values.altitude =
-            document.querySelector("#hud-altitude");
-
-        this.values.throttle =
-            document.querySelector("#hud-throttle");
-
-        this.values.pitch =
-            document.querySelector("#hud-pitch");
-
-        this.values.mode =
-            document.querySelector("#hud-mode");
-
-        this.values.brake =
-            document.querySelector("#hud-brake");
-
-        this.values.throttleFill =
-            document.querySelector("#hud-throttle-fill");
-
-        this.controls.throttleUp =
-            document.querySelector(
-                "#control-throttle-up"
-            );
-
-        this.controls.throttleDown =
-            document.querySelector(
-                "#control-throttle-down"
-            );
-
-        this.controls.turnLeft =
-            document.querySelector(
-                "#control-turn-left"
-            );
-
-        this.controls.turnRight =
-            document.querySelector(
-                "#control-turn-right"
-            );
-
-        this.controls.pitchUp =
-            document.querySelector(
-                "#control-pitch-up"
-            );
-
-        this.controls.pitchDown =
-            document.querySelector(
-                "#control-pitch-down"
-            );
-
-        this.controls.brake =
-            document.querySelector(
-                "#control-brake"
-            );
-
-        for (
-            const [action, element]
-            of Object.entries(this.controls)
-        ) {
-            this.bindControl(
-                element,
-                action
-            );
-        }
-    }
-
-    bindControl(element, action) {
-        const activate = (event) => {
-            event.preventDefault();
-
-            this.controlState[action] = true;
-
-            element.classList.add(
-                "control-button-active"
-            );
-
-            if (element.setPointerCapture) {
-                element.setPointerCapture(
-                    event.pointerId
-                );
-            }
-        };
-
-        const deactivate = (event) => {
-            event.preventDefault();
-
-            this.controlState[action] = false;
-
-            element.classList.remove(
-                "control-button-active"
-            );
-
-            if (
-                element.releasePointerCapture &&
-                element.hasPointerCapture?.(
-                    event.pointerId
-                )
-            ) {
-                element.releasePointerCapture(
-                    event.pointerId
-                );
-            }
-        };
-
-        element.addEventListener(
-            "pointerdown",
-            activate
+#startup-status {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: grid;
+    place-items: center;
+    padding: 32px;
+    text-align: center;
+    background:
+        radial-gradient(
+            circle at center,
+            #173a5e 0%,
+            #07111f 75%
         );
+}
 
-        element.addEventListener(
-            "pointerup",
-            deactivate
-        );
+#startup-status h1 {
+    margin: 0 0 12px;
+    color: #70c8ff;
+}
 
-        element.addEventListener(
-            "pointercancel",
-            deactivate
-        );
+#startup-status p {
+    margin: 6px 0;
+    color: #d8eaff;
+}
 
-        element.addEventListener(
-            "contextmenu",
-            (event) => {
-                event.preventDefault();
-            }
-        );
-    }
+#startup-error {
+    max-width: 900px;
+    color: #ff8a8a;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
 
-    isControlActive(action) {
-        return Boolean(
-            this.controlState[action]
-        );
-    }
-
-    update(data) {
-        const time =
-            new Date().toLocaleTimeString(
-                "en-US",
-                {
-                    hour12: false
-                }
-            );
-
-        const speedKmh =
-            Math.max(
-                0,
-                Math.round(data.speedKmh)
-            );
-
-        const altitudeMeters =
-            Math.max(
-                0,
-                Math.round(data.altitudeMeters)
-            );
-
-        const throttlePercent =
-            Math.round(
-                data.throttle * 100
-            );
-
-        const pitchDegrees =
-            data.pitchDegrees.toFixed(1);
-
-        this.values.aircraft.textContent =
-            data.aircraftName;
-
-        this.values.time.textContent =
-            time;
-
-        this.values.speed.textContent =
-            `${speedKmh} km/h`;
-
-        this.values.altitude.textContent =
-            `${altitudeMeters} m`;
-
-        this.values.throttle.textContent =
-            `${throttlePercent}%`;
-
-        this.values.pitch.textContent =
-            `${pitchDegrees} deg`;
-
-        this.values.mode.textContent =
-            data.airborne
-                ? "AIR"
-                : "GROUND";
-
-        this.values.brake.textContent =
-            data.brakeActive
-                ? "ON"
-                : "OFF";
-
-        this.values.brake.classList.toggle(
-            "hud-warning",
-            data.brakeActive
-        );
-
-        this.values.mode.classList.toggle(
-            "hud-airborne",
-            data.airborne
-        );
-
-        this.values.throttleFill.style.width =
-            `${throttlePercent}%`;
-    }
-
-    dispose() {
-        this.root?.remove();
-
-        this.root = null;
-        this.values = {};
-        this.controls = {};
-    }
+canvas {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    outline: none;
+    touch-action: none;
 }
