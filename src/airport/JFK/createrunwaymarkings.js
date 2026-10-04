@@ -1,46 +1,61 @@
 import * as THREE from "three";
+
 import {
     getPrimaryRunwayDimensions
 } from "./createrunways.js";
 
-const MARKING_Y = 0.072;
+const MARKING_CLEARANCE = 0.008;
 
-function createMarkingMaterial() {
+function createWhiteMaterial() {
     return new THREE.MeshBasicMaterial({
         color: 0xffffff,
         side: THREE.DoubleSide,
+        depthTest: true,
         depthWrite: false,
-        polygonOffset: true,
-        polygonOffsetFactor: -4,
-        polygonOffsetUnits: -4
+        transparent: false
     });
 }
 
 function createFlatMarking(
+    name,
     width,
     length,
     x,
     z,
     material
 ) {
-    const geometry = new THREE.PlaneGeometry(
-        width,
-        length
-    );
+    const geometry =
+        new THREE.PlaneGeometry(
+            width,
+            length
+        );
 
     const marking = new THREE.Mesh(
         geometry,
         material
     );
 
-    marking.rotation.x = -Math.PI / 2;
+    marking.name = name;
+
+    marking.rotation.set(
+        -Math.PI / 2,
+        0,
+        0
+    );
+
     marking.position.set(
         x,
-        MARKING_Y,
+        MARKING_CLEARANCE,
         z
     );
 
-    marking.renderOrder = 2;
+    marking.scale.set(
+        1,
+        1,
+        1
+    );
+
+    marking.renderOrder = 10;
 
     return marking;
 }
@@ -50,183 +65,173 @@ function createCenterlineMarkings(
     runwayLength,
     material
 ) {
+    const segmentWidth = 0.9;
     const segmentLength = 30;
     const segmentGap = 20;
-    const segmentWidth = 0.9;
-    const usableLength = runwayLength - 280;
 
-    const startZ = usableLength / 2;
+    const startZ =
+        runwayLength / 2 - 210;
+
+    const endZ =
+        -runwayLength / 2 + 210;
 
     for (
         let z = startZ;
-        z >= -startZ;
+        z >= endZ;
         z -= segmentLength + segmentGap
     ) {
-        const marking = createFlatMarking(
-            segmentWidth,
-            segmentLength,
-            0,
-            z,
-            material
+        group.add(
+            createFlatMarking(
+                "RunwayCenterline",
+                segmentWidth,
+                segmentLength,
+                0,
+                z,
+                material
+            )
         );
-
-        marking.name = "RunwayCenterline";
-
-        group.add(marking);
     }
 }
 
-function createRunwayEdgeLines(
+function createEdgeLines(
     group,
     runwayLength,
     runwayWidth,
     material
 ) {
-    const edgeOffset = runwayWidth / 2 - 1.1;
     const edgeLineWidth = 0.9;
 
-    const leftLine = createFlatMarking(
-        edgeLineWidth,
-        runwayLength - 20,
-        -edgeOffset,
-        0,
-        material
+    const edgeOffset =
+        runwayWidth / 2 -
+        edgeLineWidth / 2 -
+        0.6;
+
+    group.add(
+        createFlatMarking(
+            "LeftRunwayEdgeLine",
+            edgeLineWidth,
+            runwayLength - 20,
+            -edgeOffset,
+            0,
+            material
+        )
     );
 
-    leftLine.name = "LeftRunwayEdgeLine";
-
-    group.add(leftLine);
-
-    const rightLine = createFlatMarking(
-        edgeLineWidth,
-        runwayLength - 20,
-        edgeOffset,
-        0,
-        material
+    group.add(
+        createFlatMarking(
+            "RightRunwayEdgeLine",
+            edgeLineWidth,
+            runwayLength - 20,
+            edgeOffset,
+            0,
+            material
+        )
     );
-
-    rightLine.name = "RightRunwayEdgeLine";
-
-    group.add(rightLine);
 }
 
-function createThresholdMarkings(
+function createThresholdStripes(
     group,
     runwayLength,
     material
 ) {
-    const thresholdDistance = 70;
-    const stripeWidth = 2.3;
-    const stripeLength = 45;
-    const stripeGap = 1.5;
-    const stripeCountPerSide = 8;
+    const stripeWidth = 2.25;
+    const stripeLength = 42;
+    const stripeGap = 1.3;
+    const stripeCountPerSide = 7;
 
-    const northThresholdZ =
-        -runwayLength / 2 + thresholdDistance;
+    const thresholdOffset = 72;
 
-    const southThresholdZ =
-        runwayLength / 2 - thresholdDistance;
+    const nearThresholdZ =
+        runwayLength / 2 -
+        thresholdOffset;
+
+    const farThresholdZ =
+        -runwayLength / 2 +
+        thresholdOffset;
 
     for (
         let index = 0;
         index < stripeCountPerSide;
         index += 1
     ) {
-        const offset =
-            3.5 +
-            index * (stripeWidth + stripeGap);
+        const xOffset =
+            3.3 +
+            index *
+                (
+                    stripeWidth +
+                    stripeGap
+                );
 
-        const northLeftStripe = createFlatMarking(
-            stripeWidth,
-            stripeLength,
-            -offset,
-            northThresholdZ,
-            material
-        );
+        const positions = [
+            [
+                -xOffset,
+                nearThresholdZ
+            ],
+            [
+                xOffset,
+                nearThresholdZ
+            ],
+            [
+                -xOffset,
+                farThresholdZ
+            ],
+            [
+                xOffset,
+                farThresholdZ
+            ]
+        ];
 
-        northLeftStripe.name =
-            "NorthThresholdStripe";
-
-        group.add(northLeftStripe);
-
-        const northRightStripe = createFlatMarking(
-            stripeWidth,
-            stripeLength,
-            offset,
-            northThresholdZ,
-            material
-        );
-
-        northRightStripe.name =
-            "NorthThresholdStripe";
-
-        group.add(northRightStripe);
-
-        const southLeftStripe = createFlatMarking(
-            stripeWidth,
-            stripeLength,
-            -offset,
-            southThresholdZ,
-            material
-        );
-
-        southLeftStripe.name =
-            "SouthThresholdStripe";
-
-        group.add(southLeftStripe);
-
-        const southRightStripe = createFlatMarking(
-            stripeWidth,
-            stripeLength,
-            offset,
-            southThresholdZ,
-            material
-        );
-
-        southRightStripe.name =
-            "SouthThresholdStripe";
-
-        group.add(southRightStripe);
+        for (const [x, z] of positions) {
+            group.add(
+                createFlatMarking(
+                    "ThresholdStripe",
+                    stripeWidth,
+                    stripeLength,
+                    x,
+                    z,
+                    material
+                )
+            );
+        }
     }
 }
 
-function createAimingPointMarkings(
+function createAimingPoints(
     group,
     runwayLength,
     material
 ) {
-    const aimingPointDistance = 450;
-    const markingWidth = 8;
-    const markingLength = 55;
-    const lateralOffset = 12;
+    const distanceFromEnd = 430;
+    const lateralOffset = 11.5;
+    const width = 7.5;
+    const length = 52;
 
-    const northZ =
-        -runwayLength / 2 +
-        aimingPointDistance;
-
-    const southZ =
+    const nearZ =
         runwayLength / 2 -
-        aimingPointDistance;
+        distanceFromEnd;
+
+    const farZ =
+        -runwayLength / 2 +
+        distanceFromEnd;
 
     const positions = [
-        [-lateralOffset, northZ],
-        [lateralOffset, northZ],
-        [-lateralOffset, southZ],
-        [lateralOffset, southZ]
+        [-lateralOffset, nearZ],
+        [lateralOffset, nearZ],
+        [-lateralOffset, farZ],
+        [lateralOffset, farZ]
     ];
 
     for (const [x, z] of positions) {
-        const marking = createFlatMarking(
-            markingWidth,
-            markingLength,
-            x,
-            z,
-            material
+        group.add(
+            createFlatMarking(
+                "AimingPoint",
+                width,
+                length,
+                x,
+                z,
+                material
+            )
         );
-
-        marking.name = "AimingPointMarking";
-
-        group.add(marking);
     }
 }
 
@@ -247,42 +252,55 @@ function createTouchdownZoneMarkings(
     ];
 
     for (const distance of distances) {
-        const northZ =
-            -runwayLength / 2 +
-            distance;
-
-        const southZ =
+        const nearZ =
             runwayLength / 2 -
             distance;
 
-        for (const lateralOffset of lateralOffsets) {
+        const farZ =
+            -runwayLength / 2 +
+            distance;
+
+        for (
+            const lateralOffset
+            of lateralOffsets
+        ) {
             const positions = [
-                [-lateralOffset, northZ],
-                [lateralOffset, northZ],
-                [-lateralOffset, southZ],
-                [lateralOffset, southZ]
+                [
+                    -lateralOffset,
+                    nearZ
+                ],
+                [
+                    lateralOffset,
+                    nearZ
+                ],
+                [
+                    -lateralOffset,
+                    farZ
+                ],
+                [
+                    lateralOffset,
+                    farZ
+                ]
             ];
 
             for (const [x, z] of positions) {
-                const marking = createFlatMarking(
-                    2.2,
-                    22,
-                    x,
-                    z,
-                    material
+                group.add(
+                    createFlatMarking(
+                        "TouchdownZoneMarking",
+                        2.2,
+                        22,
+                        x,
+                        z,
+                        material
+                    )
                 );
-
-                marking.name =
-                    "TouchdownZoneMarking";
-
-                group.add(marking);
             }
         }
     }
 }
 
 function createRunwayNumberTexture(
-    number,
+    text,
     rotation
 ) {
     const canvas =
@@ -311,15 +329,18 @@ function createRunwayNumberTexture(
     context.rotate(rotation);
 
     context.fillStyle = "#ffffff";
+
     context.textAlign = "center";
+
     context.textBaseline = "middle";
+
     context.font =
-        "bold 260px Arial, sans-serif";
+        "bold 250px Arial, sans-serif";
 
     context.fillText(
-        number,
+        text,
         0,
-        15
+        20
     );
 
     context.restore();
@@ -345,71 +366,87 @@ function createRunwayNumbers(
     group,
     runwayLength
 ) {
-    const numberDistance = 155;
-    const numberWidth = 22;
-    const numberLength = 42;
+    const numberDistance = 150;
 
-    const northTexture =
+    const nearTexture =
         createRunwayNumberTexture(
             "04",
             0
         );
 
-    const southTexture =
+    const farTexture =
         createRunwayNumberTexture(
             "22",
             Math.PI
         );
 
-    const northMaterial =
+    const nearMaterial =
         new THREE.MeshBasicMaterial({
-            map: northTexture,
+            map: nearTexture,
             transparent: true,
+            depthTest: true,
             depthWrite: false,
-            polygonOffset: true,
-            polygonOffsetFactor: -5,
-            polygonOffsetUnits: -5
+            side: THREE.DoubleSide
         });
 
-    const southMaterial =
+    const farMaterial =
         new THREE.MeshBasicMaterial({
-            map: southTexture,
+            map: farTexture,
             transparent: true,
+            depthTest: true,
             depthWrite: false,
-            polygonOffset: true,
-            polygonOffsetFactor: -5,
-            polygonOffsetUnits: -5
+            side: THREE.DoubleSide
         });
 
-    const northNumber = createFlatMarking(
-        numberWidth,
-        numberLength,
-        0,
-        -runwayLength / 2 + numberDistance,
-        northMaterial
+    group.add(
+        createFlatMarking(
+            "RunwayNumber04",
+            21,
+            40,
+            0,
+            runwayLength / 2 -
+                numberDistance,
+            nearMaterial
+        )
     );
 
-    northNumber.name = "RunwayNumber04";
-
-    group.add(northNumber);
-
-    const southNumber = createFlatMarking(
-        numberWidth,
-        numberLength,
-        0,
-        runwayLength / 2 - numberDistance,
-        southMaterial
+    group.add(
+        createFlatMarking(
+            "RunwayNumber22",
+            21,
+            40,
+            0,
+            -runwayLength / 2 +
+                numberDistance,
+            farMaterial
+        )
     );
-
-    southNumber.name = "RunwayNumber22";
-
-    group.add(southNumber);
 }
 
 export function createRunwayMarkings() {
-    const markingGroup = new THREE.Group();
+    const markingGroup =
+        new THREE.Group();
 
-    markingGroup.name = "JFKRunwayMarkings";
+    markingGroup.name =
+        "JFKRunwayMarkings";
+
+    markingGroup.position.set(
+        0,
+        0,
+        0
+    );
+
+    markingGroup.rotation.set(
+        0,
+        0,
+        0
+    );
+
+    markingGroup.scale.set(
+        1,
+        1,
+        1
+    );
 
     const {
         length,
@@ -417,40 +454,41 @@ export function createRunwayMarkings() {
         height
     } = getPrimaryRunwayDimensions();
 
-    const material =
-        createMarkingMaterial();
+    markingGroup.position.y =
+        height;
 
-    markingGroup.position.y = height;
+    const whiteMaterial =
+        createWhiteMaterial();
 
     createCenterlineMarkings(
         markingGroup,
         length,
-        material
+        whiteMaterial
     );
 
-    createRunwayEdgeLines(
+    createEdgeLines(
         markingGroup,
         length,
         width,
-        material
+        whiteMaterial
     );
 
-    createThresholdMarkings(
+    createThresholdStripes(
         markingGroup,
         length,
-        material
+        whiteMaterial
     );
 
-    createAimingPointMarkings(
+    createAimingPoints(
         markingGroup,
         length,
-        material
+        whiteMaterial
     );
 
     createTouchdownZoneMarkings(
         markingGroup,
         length,
-        material
+        whiteMaterial
     );
 
     createRunwayNumbers(
