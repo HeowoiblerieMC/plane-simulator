@@ -1,52 +1,39 @@
-import * as THREE from "three";
+import { ChaseCamera } from "../cameras/chasecamera.js";
+import { CockpitCamera } from "../cameras/cockpitcamera.js";
 
-export class ChaseCamera {
+export class CameraManager {
     constructor(camera) {
         this.camera = camera;
-        this.position = new THREE.Vector3();
-        this.target = new THREE.Vector3();
-        this.forward = new THREE.Vector3();
+        this.mode = "CHASE";
+        this.chaseCamera = new ChaseCamera(camera);
+        this.cockpitCamera = new CockpitCamera(camera);
+    }
+
+    toggle() {
+        this.mode =
+            this.mode === "CHASE"
+                ? "COCKPIT"
+                : "CHASE";
+
+        return this.mode;
     }
 
     update(aircraft, flightState) {
-        if (!aircraft || !this.camera) {
+        if (!aircraft) {
             return;
         }
 
-        if (!flightState.airborne) {
-            this.position.set(
-                0,
-                aircraft.position.y + 14,
-                aircraft.position.z + 16
-            );
+        const cockpit = aircraft.userData.cockpit;
 
-            this.target.set(
-                0,
-                aircraft.position.y + 1.8,
-                aircraft.position.z - 4
-            );
-        } else {
-            this.forward.set(
-                -Math.sin(flightState.heading),
-                0,
-                -Math.cos(flightState.heading)
-            );
-
-            this.position
-                .copy(aircraft.position)
-                .addScaledVector(this.forward, -16);
-
-            this.position.y += 14;
-
-            this.target
-                .copy(aircraft.position)
-                .addScaledVector(this.forward, 4);
-
-            this.target.y += 1.8;
+        if (cockpit) {
+            cockpit.visible = this.mode === "COCKPIT";
         }
 
-        this.camera.position.copy(this.position);
-        this.camera.up.set(0, 1, 0);
-        this.camera.lookAt(this.target);
+        if (this.mode === "COCKPIT") {
+            this.cockpitCamera.update(aircraft);
+            return;
+        }
+
+        this.chaseCamera.update(aircraft, flightState);
     }
 }
