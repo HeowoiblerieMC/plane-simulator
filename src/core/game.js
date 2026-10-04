@@ -843,53 +843,67 @@ this.worldUpAxis =
     }
 
     updateCamera(deltaTime) {
-        if (!this.aircraft) {
-            return;
-        }
-
-        this.desiredCameraPosition
-            .copy(this.cameraOffset)
-            .applyAxisAngle(
-                new THREE.Vector3(
-                    0,
-                    1,
-                    0
-                ),
-                this.flightState.heading
-            )
-            .add(
-                this.aircraft.position
-            );
-
-        this.desiredCameraTarget
-            .copy(this.cameraTargetOffset)
-            .applyAxisAngle(
-                new THREE.Vector3(
-                    0,
-                    1,
-                    0
-                ),
-                this.flightState.heading
-            )
-            .add(
-                this.aircraft.position
-            );
-
-        const smoothing =
-            1 -
-            Math.exp(
-                -5 * deltaTime
-            );
-
-        this.camera.position.lerp(
-            this.desiredCameraPosition,
-            smoothing
-        );
-
-        this.camera.lookAt(
-            this.desiredCameraTarget
-        );
+    if (
+        !this.aircraft ||
+        !this.camera
+    ) {
+        return;
     }
+
+    this.cameraHeadingQuaternion
+        .setFromAxisAngle(
+            this.worldUpAxis,
+            this.flightState.heading
+        );
+
+    this.desiredCameraPosition
+        .copy(
+            this.cameraOffset
+        )
+        .applyQuaternion(
+            this.cameraHeadingQuaternion
+        )
+        .add(
+            this.aircraft.position
+        );
+
+    this.desiredCameraTarget
+        .copy(
+            this.cameraTargetOffset
+        )
+        .applyQuaternion(
+            this.cameraHeadingQuaternion
+        )
+        .add(
+            this.aircraft.position
+        );
+
+    const positionSmoothing =
+        1 -
+        Math.exp(
+            -8 * deltaTime
+        );
+
+    const targetSmoothing =
+        1 -
+        Math.exp(
+            -12 * deltaTime
+        );
+
+    this.camera.position.lerp(
+        this.desiredCameraPosition,
+        positionSmoothing
+    );
+
+    this.smoothedCameraTarget.lerp(
+        this.desiredCameraTarget,
+        targetSmoothing
+    );
+
+    this.camera.lookAt(
+        this.smoothedCameraTarget
+    );
+}
 
     updateHUD() {
         if (!this.hud || !this.aircraft) {
