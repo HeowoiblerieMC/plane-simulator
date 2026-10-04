@@ -1,233 +1,360 @@
-:root {
-    font-family:
-        Inter,
-        system-ui,
-        -apple-system,
-        BlinkMacSystemFont,
-        "Segoe UI",
-        sans-serif;
+export class FlightHUD {
+    constructor() {
+        this.root = null;
+        this.values = {};
+        this.controls = {};
 
-    color: #ffffff;
-    background: #87b9e8;
-    font-synthesis: none;
-    text-rendering: optimizeLegibility;
-}
+        this.controlState = {
+            throttleUp: false,
+            throttleDown: false,
+            turnLeft: false,
+            turnRight: false,
+            pitchUp: false,
+            pitchDown: false,
+            brake: false
+        };
 
-* {
-    box-sizing: border-box;
-}
-
-html,
-body,
-#app {
-    width: 100%;
-    height: 100%;
-    margin: 0;
-    overflow: hidden;
-}
-
-body {
-    min-width: 320px;
-    min-height: 100vh;
-    background: #87b9e8;
-    touch-action: none;
-}
-
-#app {
-    position: relative;
-    background: #87b9e8;
-}
-
-canvas {
-    display: block;
-    width: 100%;
-    height: 100%;
-    outline: none;
-}
-
-#flight-hud {
-    position: fixed;
-    inset: 0;
-    z-index: 20;
-    pointer-events: none;
-    user-select: none;
-}
-
-.hud-panel {
-    position: absolute;
-    top: 18px;
-    right: 18px;
-    width: min(280px, calc(100vw - 36px));
-    padding: 14px 16px;
-    border: 1px solid rgba(112, 200, 255, 0.55);
-    border-radius: 10px;
-    background:
-        linear-gradient(
-            145deg,
-            rgba(5, 18, 32, 0.9),
-            rgba(10, 39, 62, 0.78)
-        );
-    box-shadow:
-        0 10px 32px rgba(0, 0, 0, 0.28),
-        inset 0 0 18px rgba(112, 200, 255, 0.08);
-    backdrop-filter: blur(8px);
-}
-
-.hud-title {
-    margin-bottom: 10px;
-    color: #70c8ff;
-    font-size: 13px;
-    font-weight: 800;
-    letter-spacing: 0.2em;
-    text-align: center;
-}
-
-.hud-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 14px;
-    min-height: 24px;
-    border-bottom:
-        1px solid rgba(255, 255, 255, 0.07);
-    font-family:
-        "SFMono-Regular",
-        Consolas,
-        "Liberation Mono",
-        monospace;
-    font-size: 13px;
-}
-
-.hud-row span {
-    color: #8da9bb;
-}
-
-.hud-row strong {
-    overflow: hidden;
-    color: #effaff;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.hud-warning {
-    color: #ff8a74 !important;
-}
-
-.hud-throttle-track {
-    width: 100%;
-    height: 7px;
-    margin-top: 12px;
-    overflow: hidden;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.1);
-}
-
-#hud-throttle-fill {
-    width: 0;
-    height: 100%;
-    border-radius: inherit;
-    background:
-        linear-gradient(
-            90deg,
-            #33c7ff,
-            #48f08b
-        );
-    box-shadow:
-        0 0 12px rgba(72, 240, 139, 0.7);
-    transition: width 80ms linear;
-}
-
-.touch-controls {
-    position: absolute;
-    right: max(18px, env(safe-area-inset-right));
-    bottom: max(18px, env(safe-area-inset-bottom));
-    display: flex;
-    gap: 10px;
-    pointer-events: auto;
-}
-
-.control-button {
-    min-width: 84px;
-    min-height: 54px;
-    padding: 10px 14px;
-    border: 1px solid rgba(255, 255, 255, 0.35);
-    border-radius: 12px;
-    color: #ffffff;
-    background:
-        linear-gradient(
-            145deg,
-            rgba(37, 55, 72, 0.92),
-            rgba(12, 25, 38, 0.94)
-        );
-    box-shadow:
-        0 7px 18px rgba(0, 0, 0, 0.25);
-    font-family:
-        "SFMono-Regular",
-        Consolas,
-        monospace;
-    font-size: 14px;
-    font-weight: 800;
-    letter-spacing: 0.04em;
-    touch-action: none;
-    -webkit-tap-highlight-color: transparent;
-}
-
-.control-button-primary {
-    border-color: rgba(72, 240, 139, 0.65);
-    background:
-        linear-gradient(
-            145deg,
-            rgba(20, 103, 81, 0.95),
-            rgba(8, 49, 45, 0.96)
-        );
-}
-
-.control-button-danger {
-    border-color: rgba(255, 112, 99, 0.7);
-    background:
-        linear-gradient(
-            145deg,
-            rgba(129, 49, 44, 0.95),
-            rgba(60, 20, 24, 0.96)
-        );
-}
-
-.control-button-active {
-    transform: translateY(2px) scale(0.97);
-    filter: brightness(1.35);
-    box-shadow:
-        0 2px 8px rgba(0, 0, 0, 0.3),
-        inset 0 0 14px rgba(255, 255, 255, 0.12);
-}
-
-@media (max-width: 720px) {
-    .hud-panel {
-        top: 10px;
-        right: 10px;
-        width: 230px;
-        padding: 10px 12px;
+        this.create();
     }
 
-    .hud-title {
-        margin-bottom: 7px;
-        font-size: 11px;
+    create() {
+        this.root = document.createElement("div");
+        this.root.id = "flight-hud";
+
+        this.root.innerHTML = `
+            <div class="hud-panel">
+                <div class="hud-title">NOVA FLIGHT</div>
+
+                <div class="hud-row">
+                    <span>AIRCRAFT</span>
+                    <strong id="hud-aircraft">NOVA SKY 172</strong>
+                </div>
+
+                <div class="hud-row">
+                    <span>TIME</span>
+                    <strong id="hud-time">00:00:00</strong>
+                </div>
+
+                <div class="hud-row">
+                    <span>SPD</span>
+                    <strong id="hud-speed">0 km/h</strong>
+                </div>
+
+                <div class="hud-row">
+                    <span>ALT</span>
+                    <strong id="hud-altitude">0 m</strong>
+                </div>
+
+                <div class="hud-row">
+                    <span>THR</span>
+                    <strong id="hud-throttle">0%</strong>
+                </div>
+
+                <div class="hud-row">
+                    <span>PITCH</span>
+                    <strong id="hud-pitch">0.0 deg</strong>
+                </div>
+
+                <div class="hud-row">
+                    <span>MODE</span>
+                    <strong id="hud-mode">GROUND</strong>
+                </div>
+
+                <div class="hud-row">
+                    <span>BRAKE</span>
+                    <strong id="hud-brake">OFF</strong>
+                </div>
+
+                <div class="hud-throttle-track">
+                    <div id="hud-throttle-fill"></div>
+                </div>
+            </div>
+
+            <div class="touch-controls touch-controls-left">
+                <div class="control-row">
+                    <button
+                        id="control-turn-left"
+                        class="control-button"
+                        type="button"
+                    >
+                        LEFT
+                    </button>
+
+                    <button
+                        id="control-turn-right"
+                        class="control-button"
+                        type="button"
+                    >
+                        RIGHT
+                    </button>
+                </div>
+
+                <div class="control-row">
+                    <button
+                        id="control-pitch-up"
+                        class="control-button control-button-primary"
+                        type="button"
+                    >
+                        PITCH +
+                    </button>
+
+                    <button
+                        id="control-pitch-down"
+                        class="control-button"
+                        type="button"
+                    >
+                        PITCH -
+                    </button>
+                </div>
+            </div>
+
+            <div class="touch-controls touch-controls-right">
+                <div class="control-row">
+                    <button
+                        id="control-throttle-up"
+                        class="control-button control-button-primary"
+                        type="button"
+                    >
+                        THR +
+                    </button>
+
+                    <button
+                        id="control-throttle-down"
+                        class="control-button"
+                        type="button"
+                    >
+                        THR -
+                    </button>
+                </div>
+
+                <button
+                    id="control-brake"
+                    class="control-button control-button-danger control-button-wide"
+                    type="button"
+                >
+                    BRAKE
+                </button>
+            </div>
+        `;
+
+        document.body.appendChild(this.root);
+
+        this.values.aircraft =
+            document.querySelector("#hud-aircraft");
+
+        this.values.time =
+            document.querySelector("#hud-time");
+
+        this.values.speed =
+            document.querySelector("#hud-speed");
+
+        this.values.altitude =
+            document.querySelector("#hud-altitude");
+
+        this.values.throttle =
+            document.querySelector("#hud-throttle");
+
+        this.values.pitch =
+            document.querySelector("#hud-pitch");
+
+        this.values.mode =
+            document.querySelector("#hud-mode");
+
+        this.values.brake =
+            document.querySelector("#hud-brake");
+
+        this.values.throttleFill =
+            document.querySelector("#hud-throttle-fill");
+
+        this.controls.throttleUp =
+            document.querySelector(
+                "#control-throttle-up"
+            );
+
+        this.controls.throttleDown =
+            document.querySelector(
+                "#control-throttle-down"
+            );
+
+        this.controls.turnLeft =
+            document.querySelector(
+                "#control-turn-left"
+            );
+
+        this.controls.turnRight =
+            document.querySelector(
+                "#control-turn-right"
+            );
+
+        this.controls.pitchUp =
+            document.querySelector(
+                "#control-pitch-up"
+            );
+
+        this.controls.pitchDown =
+            document.querySelector(
+                "#control-pitch-down"
+            );
+
+        this.controls.brake =
+            document.querySelector(
+                "#control-brake"
+            );
+
+        for (
+            const [action, element]
+            of Object.entries(this.controls)
+        ) {
+            this.bindControl(
+                element,
+                action
+            );
+        }
     }
 
-    .hud-row {
-        min-height: 20px;
-        font-size: 11px;
+    bindControl(element, action) {
+        const activate = (event) => {
+            event.preventDefault();
+
+            this.controlState[action] = true;
+
+            element.classList.add(
+                "control-button-active"
+            );
+
+            if (element.setPointerCapture) {
+                element.setPointerCapture(
+                    event.pointerId
+                );
+            }
+        };
+
+        const deactivate = (event) => {
+            event.preventDefault();
+
+            this.controlState[action] = false;
+
+            element.classList.remove(
+                "control-button-active"
+            );
+
+            if (
+                element.releasePointerCapture &&
+                element.hasPointerCapture?.(
+                    event.pointerId
+                )
+            ) {
+                element.releasePointerCapture(
+                    event.pointerId
+                );
+            }
+        };
+
+        element.addEventListener(
+            "pointerdown",
+            activate
+        );
+
+        element.addEventListener(
+            "pointerup",
+            deactivate
+        );
+
+        element.addEventListener(
+            "pointercancel",
+            deactivate
+        );
+
+        element.addEventListener(
+            "contextmenu",
+            (event) => {
+                event.preventDefault();
+            }
+        );
     }
 
-    .touch-controls {
-        right: 10px;
-        bottom: 10px;
-        gap: 7px;
+    isControlActive(action) {
+        return Boolean(
+            this.controlState[action]
+        );
     }
 
-    .control-button {
-        min-width: 70px;
-        min-height: 48px;
-        padding: 8px 10px;
-        font-size: 12px;
+    update(data) {
+        const time =
+            new Date().toLocaleTimeString(
+                "en-US",
+                {
+                    hour12: false
+                }
+            );
+
+        const speedKmh =
+            Math.max(
+                0,
+                Math.round(data.speedKmh)
+            );
+
+        const altitudeMeters =
+            Math.max(
+                0,
+                Math.round(data.altitudeMeters)
+            );
+
+        const throttlePercent =
+            Math.round(
+                data.throttle * 100
+            );
+
+        const pitchDegrees =
+            data.pitchDegrees.toFixed(1);
+
+        this.values.aircraft.textContent =
+            data.aircraftName;
+
+        this.values.time.textContent =
+            time;
+
+        this.values.speed.textContent =
+            `${speedKmh} km/h`;
+
+        this.values.altitude.textContent =
+            `${altitudeMeters} m`;
+
+        this.values.throttle.textContent =
+            `${throttlePercent}%`;
+
+        this.values.pitch.textContent =
+            `${pitchDegrees} deg`;
+
+        this.values.mode.textContent =
+            data.airborne
+                ? "AIR"
+                : "GROUND";
+
+        this.values.brake.textContent =
+            data.brakeActive
+                ? "ON"
+                : "OFF";
+
+        this.values.brake.classList.toggle(
+            "hud-warning",
+            data.brakeActive
+        );
+
+        this.values.mode.classList.toggle(
+            "hud-airborne",
+            data.airborne
+        );
+
+        this.values.throttleFill.style.width =
+            `${throttlePercent}%`;
+    }
+
+    dispose() {
+        this.root?.remove();
+
+        this.root = null;
+        this.values = {};
+        this.controls = {};
     }
 }
