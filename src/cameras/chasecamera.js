@@ -4,14 +4,9 @@ export class ChaseCamera {
     constructor(camera) {
         this.camera = camera;
 
-        this.cameraPosition =
-            new THREE.Vector3();
-
-        this.cameraTarget =
-            new THREE.Vector3();
-
-        this.forward =
-            new THREE.Vector3();
+        this.position = new THREE.Vector3();
+        this.target = new THREE.Vector3();
+        this.forward = new THREE.Vector3();
     }
 
     update(aircraft, flightState) {
@@ -34,16 +29,16 @@ export class ChaseCamera {
     }
 
     updateGroundCamera(aircraft) {
-        this.cameraPosition.set(
+        this.position.set(
             0,
-            aircraft.position.y + 16,
-            aircraft.position.z + 14
+            aircraft.position.y + 4.5,
+            aircraft.position.z + 18
         );
 
-        this.cameraTarget.set(
+        this.target.set(
             0,
-            aircraft.position.y + 1.5,
-            aircraft.position.z - 5
+            aircraft.position.y + 1.8,
+            aircraft.position.z - 25
         );
 
         this.applyCamera();
@@ -63,30 +58,30 @@ export class ChaseCamera {
             )
         );
 
-        this.cameraPosition
+        this.position
             .copy(aircraft.position)
             .addScaledVector(
                 this.forward,
-                -14
+                -18
             );
 
-        this.cameraPosition.y += 16;
+        this.position.y += 4.5;
 
-        this.cameraTarget
+        this.target
             .copy(aircraft.position)
             .addScaledVector(
                 this.forward,
-                5
+                25
             );
 
-        this.cameraTarget.y += 1.5;
+        this.target.y += 1.8;
 
         this.applyCamera();
     }
 
     applyCamera() {
         this.camera.position.copy(
-            this.cameraPosition
+            this.position
         );
 
         this.camera.up.set(
@@ -96,11 +91,10 @@ export class ChaseCamera {
         );
 
         this.camera.lookAt(
-            this.cameraTarget
+            this.target
         );
 
-        this.camera.updateMatrixWorld(
-            true
-        );
+        this.camera.updateProjectionMatrix();
+        this.camera.updateMatrixWorld(true);
     }
 }
