@@ -9,6 +9,8 @@
 
     color: #ffffff;
     background: #87b9e8;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
 }
 
 * {
@@ -28,6 +30,7 @@ body {
     min-width: 320px;
     min-height: 100vh;
     background: #87b9e8;
+    touch-action: none;
 }
 
 #app {
@@ -39,4 +42,192 @@ canvas {
     display: block;
     width: 100%;
     height: 100%;
+    outline: none;
+}
+
+#flight-hud {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    pointer-events: none;
+    user-select: none;
+}
+
+.hud-panel {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    width: min(280px, calc(100vw - 36px));
+    padding: 14px 16px;
+    border: 1px solid rgba(112, 200, 255, 0.55);
+    border-radius: 10px;
+    background:
+        linear-gradient(
+            145deg,
+            rgba(5, 18, 32, 0.9),
+            rgba(10, 39, 62, 0.78)
+        );
+    box-shadow:
+        0 10px 32px rgba(0, 0, 0, 0.28),
+        inset 0 0 18px rgba(112, 200, 255, 0.08);
+    backdrop-filter: blur(8px);
+}
+
+.hud-title {
+    margin-bottom: 10px;
+    color: #70c8ff;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.2em;
+    text-align: center;
+}
+
+.hud-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    min-height: 24px;
+    border-bottom:
+        1px solid rgba(255, 255, 255, 0.07);
+    font-family:
+        "SFMono-Regular",
+        Consolas,
+        "Liberation Mono",
+        monospace;
+    font-size: 13px;
+}
+
+.hud-row span {
+    color: #8da9bb;
+}
+
+.hud-row strong {
+    overflow: hidden;
+    color: #effaff;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.hud-warning {
+    color: #ff8a74 !important;
+}
+
+.hud-throttle-track {
+    width: 100%;
+    height: 7px;
+    margin-top: 12px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+#hud-throttle-fill {
+    width: 0;
+    height: 100%;
+    border-radius: inherit;
+    background:
+        linear-gradient(
+            90deg,
+            #33c7ff,
+            #48f08b
+        );
+    box-shadow:
+        0 0 12px rgba(72, 240, 139, 0.7);
+    transition: width 80ms linear;
+}
+
+.touch-controls {
+    position: absolute;
+    right: max(18px, env(safe-area-inset-right));
+    bottom: max(18px, env(safe-area-inset-bottom));
+    display: flex;
+    gap: 10px;
+    pointer-events: auto;
+}
+
+.control-button {
+    min-width: 84px;
+    min-height: 54px;
+    padding: 10px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 12px;
+    color: #ffffff;
+    background:
+        linear-gradient(
+            145deg,
+            rgba(37, 55, 72, 0.92),
+            rgba(12, 25, 38, 0.94)
+        );
+    box-shadow:
+        0 7px 18px rgba(0, 0, 0, 0.25);
+    font-family:
+        "SFMono-Regular",
+        Consolas,
+        monospace;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.control-button-primary {
+    border-color: rgba(72, 240, 139, 0.65);
+    background:
+        linear-gradient(
+            145deg,
+            rgba(20, 103, 81, 0.95),
+            rgba(8, 49, 45, 0.96)
+        );
+}
+
+.control-button-danger {
+    border-color: rgba(255, 112, 99, 0.7);
+    background:
+        linear-gradient(
+            145deg,
+            rgba(129, 49, 44, 0.95),
+            rgba(60, 20, 24, 0.96)
+        );
+}
+
+.control-button-active {
+    transform: translateY(2px) scale(0.97);
+    filter: brightness(1.35);
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.3),
+        inset 0 0 14px rgba(255, 255, 255, 0.12);
+}
+
+@media (max-width: 720px) {
+    .hud-panel {
+        top: 10px;
+        right: 10px;
+        width: 230px;
+        padding: 10px 12px;
+    }
+
+    .hud-title {
+        margin-bottom: 7px;
+        font-size: 11px;
+    }
+
+    .hud-row {
+        min-height: 20px;
+        font-size: 11px;
+    }
+
+    .touch-controls {
+        right: 10px;
+        bottom: 10px;
+        gap: 7px;
+    }
+
+    .control-button {
+        min-width: 70px;
+        min-height: 48px;
+        padding: 8px 10px;
+        font-size: 12px;
+    }
 }
