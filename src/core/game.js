@@ -904,7 +904,6 @@ this.worldUpAxis =
         this.smoothedCameraTarget
     );
 }
-
     updateHUD() {
         if (!this.hud || !this.aircraft) {
             return;
