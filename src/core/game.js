@@ -21,6 +21,10 @@ import {
 } from "../environment/incidentsystem.js";
 
 import {
+    AircraftVisualSystem
+} from "../effects/aircraftvisualsystem.js";
+
+import {
     getAircraftById
 } from "../aircraft/aircraftcatalog.js";
 
@@ -29,7 +33,8 @@ export class Game {
         container,
         options = {}
     ) {
-        this.container = container;
+        this.container =
+            container;
 
         this.selectedAircraftId =
             options.selectedAircraftId ||
@@ -76,6 +81,7 @@ export class Game {
         this.timeOfDaySystem = null;
         this.weatherSystem = null;
         this.incidentSystem = null;
+        this.aircraftVisualSystem = null;
 
         this.clock =
             new THREE.Clock();
@@ -122,18 +128,30 @@ export class Game {
         this.hudValues = {};
 
         this.messageRoot = null;
-        this.messageQueue = [];
 
-        this.weatherState = "CLEAR";
-        this.simulationTime = "07:00";
+        this.weatherState =
+            this.flightSettings
+                .initialWeather;
+
+        this.simulationTime =
+            `${String(
+                this.flightSettings
+                    .startHour
+            ).padStart(
+                2,
+                "0"
+            )}:00`;
 
         this.cameraShake = {
             remaining: 0,
             strength: 0
         };
 
-        this.animationFrameId = null;
-        this.isRunning = false;
+        this.animationFrameId =
+            null;
+
+        this.isRunning =
+            false;
 
         this.animate =
             this.animate.bind(this);
@@ -168,7 +186,8 @@ export class Game {
         this.createIncidentSystem();
         this.bindEvents();
 
-        this.isRunning = true;
+        this.isRunning =
+            true;
 
         this.clock.start();
         this.animate();
@@ -189,10 +208,6 @@ export class Game {
             duration:
                 7
         });
-
-        console.log(
-            `Started with ${this.aircraftDefinition.displayName}.`
-        );
     }
 
     createScene() {
@@ -215,13 +230,15 @@ export class Game {
     createCamera() {
         const width =
             Math.max(
-                this.container.clientWidth,
+                this.container
+                    .clientWidth,
                 1
             );
 
         const height =
             Math.max(
-                this.container.clientHeight,
+                this.container
+                    .clientHeight,
                 1
             );
 
@@ -256,8 +273,10 @@ export class Game {
         );
 
         this.renderer.setSize(
-            this.container.clientWidth,
-            this.container.clientHeight,
+            this.container
+                .clientWidth,
+            this.container
+                .clientHeight,
             false
         );
 
@@ -312,9 +331,14 @@ export class Game {
                     20000
                 ),
                 new THREE.MeshStandardMaterial({
-                    color: 0x557744,
-                    roughness: 1,
-                    metalness: 0
+                    color:
+                        0x557744,
+
+                    roughness:
+                        1,
+
+                    metalness:
+                        0
                 })
             );
 
@@ -400,6 +424,15 @@ export class Game {
             this.aircraft
         );
 
+        this.aircraftVisualSystem =
+            new AircraftVisualSystem({
+                aircraft:
+                    this.aircraft,
+
+                aircraftDefinition:
+                    this.aircraftDefinition
+            });
+
         this.resetFlightState();
 
         this.updateDirection();
@@ -415,10 +448,12 @@ export class Game {
             .speedMetersPerSecond =
             0;
 
-        this.flightState.verticalSpeed =
+        this.flightState
+            .verticalSpeed =
             0;
 
-        this.flightState.altitudeMeters =
+        this.flightState
+            .altitudeMeters =
             0;
 
         this.flightState.heading =
@@ -430,10 +465,12 @@ export class Game {
         this.flightState.roll =
             0;
 
-        this.flightState.brakeActive =
+        this.flightState
+            .brakeActive =
             false;
 
-        this.flightState.airborne =
+        this.flightState
+            .airborne =
             false;
 
         this.flightState.crashed =
@@ -467,13 +504,37 @@ export class Game {
                         .timeScale
             });
 
-        this.timeOfDaySystem.setCallbacks({
-            onPeriodChanged:
-                ({ period }) => {
-                    if (
-                        period ===
-                        "NIGHT"
-                    ) {
+        this.timeOfDaySystem
+            .setCallbacks({
+                onPeriodChanged:
+                    ({
+                        period
+                    }) => {
+                        if (
+                            period ===
+                            "NIGHT"
+                        ) {
+                            this.showMessage({
+                                source:
+                                    "AIR TRAFFIC CONTROL",
+
+                                level:
+                                    "INFO",
+
+                                title:
+                                    "Night operations",
+
+                                message:
+                                    "Runway, taxiway, and aircraft lighting are now active.",
+
+                                duration:
+                                    8
+                            });
+                        }
+                    },
+
+                onSunsetApproaching:
+                    () => {
                         this.showMessage({
                             source:
                                 "AIR TRAFFIC CONTROL",
@@ -482,57 +543,36 @@ export class Game {
                                 "INFO",
 
                             title:
-                                "Night operations",
+                                "Sunset approaching",
 
                             message:
-                                "Runway and taxiway lighting is now active.",
+                                "Sunset is approaching. Airport lighting is being activated.",
+
+                            duration:
+                                9
+                        });
+                    },
+
+                onSunriseApproaching:
+                    () => {
+                        this.showMessage({
+                            source:
+                                "AIR TRAFFIC CONTROL",
+
+                            level:
+                                "INFO",
+
+                            title:
+                                "Sunrise approaching",
+
+                            message:
+                                "Sunrise is approaching. Visibility should improve shortly.",
 
                             duration:
                                 8
                         });
                     }
-                },
-
-            onSunsetApproaching:
-                () => {
-                    this.showMessage({
-                        source:
-                            "AIR TRAFFIC CONTROL",
-
-                        level:
-                            "INFO",
-
-                        title:
-                            "Sunset approaching",
-
-                        message:
-                            "Sunset is approaching. Airport lighting is being activated.",
-
-                        duration:
-                            9
-                    });
-                },
-
-            onSunriseApproaching:
-                () => {
-                    this.showMessage({
-                        source:
-                            "AIR TRAFFIC CONTROL",
-
-                        level:
-                            "INFO",
-
-                        title:
-                            "Sunrise approaching",
-
-                        message:
-                            "Sunrise is approaching. Visibility should improve shortly.",
-
-                        duration:
-                            8
-                    });
-                }
-        });
+            });
     }
 
     createWeatherSystem() {
@@ -574,86 +614,87 @@ export class Game {
             this.flightSettings
                 .initialWeather;
 
-        this.weatherSystem.setCallbacks({
-            onWeatherForecast:
-                ({
-                    currentWeather,
-                    targetWeather
-                }) => {
-                    this.handleWeatherForecast(
+        this.weatherSystem
+            .setCallbacks({
+                onWeatherForecast:
+                    ({
                         currentWeather,
                         targetWeather
-                    );
-                },
+                    }) => {
+                        this.handleWeatherForecast(
+                            currentWeather,
+                            targetWeather
+                        );
+                    },
 
-            onWeatherChanged:
-                ({
-                    currentWeather
-                }) => {
-                    this.weatherState =
-                        currentWeather;
+                onWeatherChanged:
+                    ({
+                        currentWeather
+                    }) => {
+                        this.weatherState =
+                            currentWeather;
 
-                    this.showMessage({
-                        source:
-                            "WEATHER CENTER",
+                        this.showMessage({
+                            source:
+                                "WEATHER CENTER",
 
-                        level:
-                            currentWeather ===
-                            "RAIN"
-                                ? "WARNING"
-                                : "INFO",
+                            level:
+                                currentWeather ===
+                                "RAIN"
+                                    ? "WARNING"
+                                    : "INFO",
 
-                        title:
-                            "Weather updated",
+                            title:
+                                "Weather updated",
 
-                        message:
-                            `Current airport weather is now ${currentWeather}.`,
+                            message:
+                                `Current airport weather is now ${currentWeather}.`,
 
-                        duration:
-                            8
-                    });
-                },
+                            duration:
+                                8
+                        });
+                    },
 
-            onRainStarted:
-                () => {
-                    this.showMessage({
-                        source:
-                            "WEATHER CENTER",
+                onRainStarted:
+                    () => {
+                        this.showMessage({
+                            source:
+                                "WEATHER CENTER",
 
-                        level:
-                            "WARNING",
+                            level:
+                                "WARNING",
 
-                        title:
-                            "Rain started",
+                            title:
+                                "Rain started",
 
-                        message:
-                            "Rain is reducing visibility and runway braking performance.",
+                            message:
+                                "Rain is reducing visibility and runway braking performance.",
 
-                        duration:
-                            11
-                    });
-                },
+                            duration:
+                                11
+                        });
+                    },
 
-            onRainStopped:
-                () => {
-                    this.showMessage({
-                        source:
-                            "WEATHER CENTER",
+                onRainStopped:
+                    () => {
+                        this.showMessage({
+                            source:
+                                "WEATHER CENTER",
 
-                        level:
-                            "INFO",
+                            level:
+                                "INFO",
 
-                        title:
-                            "Rain weakening",
+                            title:
+                                "Rain weakening",
 
-                        message:
-                            "Rain has ended. Visibility should improve gradually.",
+                            message:
+                                "Rain has ended. Visibility should improve gradually.",
 
-                        duration:
-                            8
-                    });
-                }
-        });
+                            duration:
+                                8
+                        });
+                    }
+            });
     }
 
     handleWeatherForecast(
@@ -757,105 +798,112 @@ export class Game {
                     0.09
             });
 
-        this.incidentSystem.setCallbacks({
-            onIncidentStarted:
-                (incident) => {
-                    this.showMessage({
-                        source:
-                            incident.category,
-
-                        level:
-                            incident.level,
-
-                        title:
-                            incident.title,
-
-                        message:
-                            incident.message,
-
-                        duration:
-                            incident.level ===
-                            "EMERGENCY"
-                                ? 14
-                                : 10
-                    });
-                },
-
-            onIncidentEnded:
-                (incident) => {
-                    if (
-                        incident.reason ===
-                        "RESOLVED"
-                    ) {
+        this.incidentSystem
+            .setCallbacks({
+                onIncidentStarted:
+                    (incident) => {
                         this.showMessage({
                             source:
-                                "FLIGHT OPERATIONS",
+                                incident.category,
 
                             level:
-                                "INFO",
+                                incident.level,
 
                             title:
-                                "Incident resolved",
+                                incident.title,
 
                             message:
-                                `${incident.title} has been resolved.`,
+                                incident.message,
 
                             duration:
-                                7
+                                incident.level ===
+                                "EMERGENCY"
+                                    ? 14
+                                    : 10
                         });
-                    }
-                },
+                    },
 
-            onFireRequested:
-                ({
-                    active,
-                    affectedEngine
-                }) => {
-                    if (active) {
-                        this.aircraft.userData
+                onIncidentEnded:
+                    (incident) => {
+                        if (
+                            incident.reason ===
+                            "RESOLVED"
+                        ) {
+                            this.showMessage({
+                                source:
+                                    "FLIGHT OPERATIONS",
+
+                                level:
+                                    "INFO",
+
+                                title:
+                                    "Incident resolved",
+
+                                message:
+                                    `${incident.title} has been resolved.`,
+
+                                duration:
+                                    7
+                            });
+                        }
+                    },
+
+                onFireRequested:
+                    ({
+                        active,
+                        affectedEngine
+                    }) => {
+                        this.aircraft
+                            .userData
+                            .engineFireActive =
+                            active;
+
+                        this.aircraft
+                            .userData
                             .activeFirePoint =
                             affectedEngine;
+                    },
 
-                        this.aircraft.userData
-                            .engineFireActive =
-                            true;
-                    } else {
-                        this.aircraft.userData
-                            .activeFirePoint =
-                            null;
+                onSmokeRequested:
+                    ({
+                        active,
+                        smokeType,
+                        affectedEngine
+                    }) => {
+                        this.aircraft
+                            .userData
+                            .smokeActive =
+                            active;
 
-                        this.aircraft.userData
-                            .engineFireActive =
-                            false;
+                        this.aircraft
+                            .userData
+                            .smokeType =
+                            smokeType;
+
+                        if (
+                            affectedEngine
+                        ) {
+                            this.aircraft
+                                .userData
+                                .activeFirePoint =
+                                affectedEngine;
+                        }
+                    },
+
+                onCameraShakeRequested:
+                    ({
+                        duration,
+                        strength
+                    }) => {
+                        this.cameraShake
+                            .remaining =
+                            duration;
+
+                        this.cameraShake
+                            .strength =
+                            strength;
                     }
-                },
-
-            onSmokeRequested:
-                ({
-                    active,
-                    smokeType
-                }) => {
-                    this.aircraft.userData
-                        .smokeActive =
-                        active;
-
-                    this.aircraft.userData
-                        .smokeType =
-                        smokeType;
-                },
-
-            onCameraShakeRequested:
-                ({
-                    duration,
-                    strength
-                }) => {
-                    this.cameraShake.remaining =
-                        duration;
-
-                    this.cameraShake.strength =
-                        strength;
-                }
-        });
+            });
     }
 
     createMessageDisplay() {
@@ -935,13 +983,13 @@ export class Game {
             colors[level] ||
             colors.INFO;
 
-        const messageElement =
+        const element =
             document.createElement(
                 "article"
             );
 
         Object.assign(
-            messageElement.style,
+            element.style,
             {
                 padding:
                     "13px 15px",
@@ -959,13 +1007,13 @@ export class Game {
                     "#ffffff",
 
                 background:
-                    "rgba(6, 16, 26, 0.9)",
+                    "rgba(6, 16, 26, 0.92)",
 
                 backdropFilter:
                     "blur(8px)",
 
                 boxShadow:
-                    "0 10px 28px rgba(0,0,0,0.28)",
+                    "0 10px 28px rgba(0, 0, 0, 0.28)",
 
                 opacity:
                     "0",
@@ -978,7 +1026,7 @@ export class Game {
             }
         );
 
-        messageElement.innerHTML = `
+        element.innerHTML = `
             <div
                 style="
                     color: ${accentColor};
@@ -1013,7 +1061,7 @@ export class Game {
         `;
 
         this.messageRoot.prepend(
-            messageElement
+            element
         );
 
         while (
@@ -1028,25 +1076,25 @@ export class Game {
 
         window.requestAnimationFrame(
             () => {
-                messageElement.style.opacity =
+                element.style.opacity =
                     "1";
 
-                messageElement.style.transform =
+                element.style.transform =
                     "translateX(0)";
             }
         );
 
         window.setTimeout(
             () => {
-                messageElement.style.opacity =
+                element.style.opacity =
                     "0";
 
-                messageElement.style.transform =
+                element.style.transform =
                     "translateX(-35px)";
 
                 window.setTimeout(
                     () => {
-                        messageElement.remove();
+                        element.remove();
                     },
                     260
                 );
@@ -1100,9 +1148,9 @@ export class Game {
                     right: 14px;
                     width: 260px;
                     padding: 12px 14px;
-                    border: 1px solid rgba(112,200,255,0.65);
+                    border: 1px solid rgba(112, 200, 255, 0.65);
                     border-radius: 10px;
-                    background: rgba(5,18,32,0.84);
+                    background: rgba(5, 18, 32, 0.84);
                     backdrop-filter: blur(6px);
                     font-family: Consolas, monospace;
                     font-size: 12px;
@@ -1130,7 +1178,7 @@ export class Game {
                 <div class="hud-row">
                     <span>TIME</span>
                     <strong id="hud-time">
-                        07:00
+                        ${this.simulationTime}
                     </strong>
                 </div>
 
@@ -1145,6 +1193,13 @@ export class Game {
                     <span>WEATHER</span>
                     <strong id="hud-weather">
                         ${this.weatherState}
+                    </strong>
+                </div>
+
+                <div class="hud-row">
+                    <span>PASSENGERS</span>
+                    <strong>
+                        ${this.flightSettings.passengers}
                     </strong>
                 </div>
 
@@ -1202,7 +1257,7 @@ export class Game {
                         height: 6px;
                         margin-top: 8px;
                         border-radius: 999px;
-                        background: rgba(255,255,255,0.12);
+                        background: rgba(255, 255, 255, 0.12);
                         overflow: hidden;
                     "
                 >
@@ -1542,7 +1597,9 @@ export class Game {
         );
     }
 
-    handleKeyDown(event) {
+    handleKeyDown(
+        event
+    ) {
         const controlledKeys = [
             "KeyW",
             "KeyS",
@@ -1578,7 +1635,9 @@ export class Game {
         );
     }
 
-    handleKeyUp(event) {
+    handleKeyUp(
+        event
+    ) {
         this.keys.delete(
             event.code
         );
@@ -1729,11 +1788,14 @@ export class Game {
             this.aircraftDefinition
                 .performance;
 
-        const incidentEffects =
+        const effects =
             this.incidentSystem
                 ?.getEffects() ??
             {
                 steeringMultiplier:
+                    1,
+
+                pitchControlMultiplier:
                     1
             };
 
@@ -1757,8 +1819,7 @@ export class Game {
                 handling
                     .groundSteeringRateDegrees
             ) *
-            incidentEffects
-                .steeringMultiplier;
+            effects.steeringMultiplier;
 
         if (turnLeft) {
             this.flightState.heading +=
@@ -1786,6 +1847,8 @@ export class Game {
                     handling
                         .pitchRateDegrees
                 ) *
+                effects
+                    .pitchControlMultiplier *
                 deltaTime;
         }
 
@@ -1795,6 +1858,8 @@ export class Game {
                     handling
                         .pitchRateDegrees
                 ) *
+                effects
+                    .pitchControlMultiplier *
                 deltaTime;
         }
 
@@ -1842,7 +1907,7 @@ export class Game {
             this.aircraftDefinition
                 .handlingConfig;
 
-        const incidentEffects =
+        const effects =
             this.incidentSystem
                 ?.getEffects() ??
             {
@@ -1861,7 +1926,7 @@ export class Game {
                 handling
                     .pitchRateDegrees
             ) *
-            incidentEffects
+            effects
                 .pitchControlMultiplier;
 
         const rollRate =
@@ -1869,7 +1934,7 @@ export class Game {
                 handling
                     .rollRateDegrees
             ) *
-            incidentEffects
+            effects
                 .rollControlMultiplier;
 
         if (pitchUp) {
@@ -1946,7 +2011,7 @@ export class Game {
                     handling
                         .turnRateDegrees
                 ) +
-                incidentEffects
+                effects
                     .asymmetricThrust
             ) *
             deltaTime;
@@ -2191,7 +2256,7 @@ export class Game {
     updateRotatingParts(
         deltaTime
     ) {
-        const incidentEffects =
+        const effects =
             this.incidentSystem
                 ?.getEffects() ??
             {
@@ -2206,7 +2271,7 @@ export class Game {
                     .throttle *
                     70
             ) *
-            incidentEffects
+            effects
                 .enginePowerMultiplier *
             deltaTime;
 
@@ -2254,9 +2319,11 @@ export class Game {
                 this.timeOfDaySystem
                     .getFormattedTime();
 
-            this.sunlight.userData
+            this.sunlight
+                .userData
                 .timeIntensity =
-                this.sunlight.intensity;
+                this.sunlight
+                    .intensity;
 
             this.hemisphereLight
                 .userData
@@ -2310,6 +2377,93 @@ export class Game {
                 crashed:
                     this.flightState
                         .crashed
+            }
+        );
+    }
+
+    updateAircraftVisuals(
+        deltaTime
+    ) {
+        if (
+            !this.aircraftVisualSystem
+        ) {
+            return;
+        }
+
+        const nightFactor =
+            this.timeOfDaySystem
+                ?.getNightFactor() ??
+            0;
+
+        const weatherState =
+            this.weatherSystem
+                ?.getState();
+
+        const incidentEffects =
+            this.incidentSystem
+                ?.getEffects() ??
+            {};
+
+        const activeIncidents =
+            this.incidentSystem
+                ?.getActiveIncidents() ??
+            [];
+
+        const engineIncident =
+            activeIncidents.find(
+                (incident) =>
+                    incident.type ===
+                        "ENGINE_FIRE" ||
+                    incident.type ===
+                        "ENGINE_FAILURE"
+            );
+
+        this.aircraftVisualSystem.update(
+            deltaTime,
+            {
+                nightFactor,
+
+                throttle:
+                    this.flightState
+                        .throttle,
+
+                airborne:
+                    this.flightState
+                        .airborne,
+
+                aircraftSpeed:
+                    this.flightState
+                        .speedMetersPerSecond,
+
+                rainIntensity:
+                    weatherState
+                        ?.rainIntensity ??
+                    0,
+
+                engineFireActive:
+                    incidentEffects
+                        .engineFireActive ??
+                    false,
+
+                smokeActive:
+                    this.aircraft
+                        ?.userData
+                        ?.smokeActive ??
+                    false,
+
+                smokeType:
+                    this.aircraft
+                        ?.userData
+                        ?.smokeType ??
+                    "BLACK",
+
+                affectedEngine:
+                    engineIncident
+                        ?.affectedEngine ??
+                    this.aircraft
+                        ?.userData
+                        ?.activeFirePoint ??
+                    null
             }
         );
     }
@@ -2382,6 +2536,10 @@ export class Game {
         this.camera.lookAt(
             this.cameraTarget
         );
+
+        this.camera.updateMatrixWorld(
+            true
+        );
     }
 
     updateCockpitCamera() {
@@ -2434,6 +2592,10 @@ export class Game {
         this.camera.lookAt(
             this.cameraTarget
         );
+
+        this.camera.updateMatrixWorld(
+            true
+        );
     }
 
     applyCameraShake() {
@@ -2445,7 +2607,8 @@ export class Game {
         }
 
         const strength =
-            this.cameraShake.strength;
+            this.cameraShake
+                .strength;
 
         this.camera.position.x +=
             (
@@ -2500,45 +2663,62 @@ export class Game {
                     .pitch
             );
 
-        this.hudValues.time.textContent =
+        this.hudValues.time
+            .textContent =
             this.simulationTime;
 
-        this.hudValues.weather.textContent =
+        this.hudValues.weather
+            .textContent =
             this.weatherState;
 
-        this.hudValues.speed.textContent =
+        this.hudValues.speed
+            .textContent =
             `${speedKmh} km/h`;
 
-        this.hudValues.altitude.textContent =
+        this.hudValues.altitude
+            .textContent =
             `${altitudeMeters} m`;
 
-        this.hudValues.throttle.textContent =
+        this.hudValues.throttle
+            .textContent =
             `${throttlePercent}%`;
 
-        this.hudValues.pitch.textContent =
-            `${pitchDegrees.toFixed(1)} deg`;
+        this.hudValues.pitch
+            .textContent =
+            `${pitchDegrees.toFixed(
+                1
+            )} deg`;
 
-        this.hudValues.mode.textContent =
-            this.flightState.airborne
+        this.hudValues.mode
+            .textContent =
+            this.flightState
+                .airborne
                 ? "AIR"
                 : "GROUND";
 
-        this.hudValues.mode.style.color =
-            this.flightState.airborne
+        this.hudValues.mode
+            .style.color =
+            this.flightState
+                .airborne
                 ? "#48f08b"
                 : "#ffffff";
 
-        this.hudValues.brake.textContent =
-            this.flightState.brakeActive
+        this.hudValues.brake
+            .textContent =
+            this.flightState
+                .brakeActive
                 ? "ON"
                 : "OFF";
 
-        this.hudValues.brake.style.color =
-            this.flightState.brakeActive
+        this.hudValues.brake
+            .style.color =
+            this.flightState
+                .brakeActive
                 ? "#ff8a74"
                 : "#ffffff";
 
-        this.hudValues.camera.textContent =
+        this.hudValues.camera
+            .textContent =
             this.cameraMode;
 
         this.hudValues
@@ -2546,21 +2726,16 @@ export class Game {
             .style.width =
             `${throttlePercent}%`;
 
-        const incidentEffects =
+        const effects =
             this.incidentSystem
                 ?.getEffects();
 
-        if (
-            incidentEffects
+        this.hudRoot.style.opacity =
+            effects
                 ?.instrumentVisibility <
             0.5
-        ) {
-            this.hudRoot.style.opacity =
-                "0.55";
-        } else {
-            this.hudRoot.style.opacity =
-                "1";
-        }
+                ? "0.55"
+                : "1";
     }
 
     update(
@@ -2573,7 +2748,8 @@ export class Game {
         this.cameraShake.remaining =
             Math.max(
                 0,
-                this.cameraShake.remaining -
+                this.cameraShake
+                    .remaining -
                     deltaTime
             );
 
@@ -2592,6 +2768,10 @@ export class Game {
         this.updateAircraftRotation();
 
         this.updateRotatingParts(
+            deltaTime
+        );
+
+        this.updateAircraftVisuals(
             deltaTime
         );
 
@@ -2705,27 +2885,39 @@ export class Game {
         this.incidentSystem
             ?.resolveAllIncidents();
 
+        this.aircraftVisualSystem
+            ?.dispose();
+
         this.weatherSystem
             ?.dispose();
 
         this.hudRoot?.remove();
         this.messageRoot?.remove();
 
-        this.hudRoot = null;
-        this.messageRoot = null;
-
         this.renderer?.dispose();
+
         this.renderer
             ?.domElement
             .remove();
 
+        this.hudRoot = null;
+        this.messageRoot = null;
+
+        this.aircraftVisualSystem =
+            null;
+
+        this.timeOfDaySystem =
+            null;
+
+        this.weatherSystem =
+            null;
+
+        this.incidentSystem =
+            null;
+
         this.aircraft = null;
         this.airport = null;
         this.city = null;
-
-        this.timeOfDaySystem = null;
-        this.weatherSystem = null;
-        this.incidentSystem = null;
 
         this.renderer = null;
         this.camera = null;
