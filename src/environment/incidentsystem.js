@@ -1,304 +1,137 @@
 export const INCIDENT_TYPES = {
-    MEDICAL_EMERGENCY:
-        "MEDICAL_EMERGENCY",
-
-    CABIN_SMOKE:
-        "CABIN_SMOKE",
-
-    SECURITY_INCIDENT:
-        "SECURITY_INCIDENT",
-
-    ENGINE_FAILURE:
-        "ENGINE_FAILURE",
-
-    ENGINE_FIRE:
-        "ENGINE_FIRE",
-
-    HYDRAULIC_FAULT:
-        "HYDRAULIC_FAULT",
-
-    ELECTRICAL_FAULT:
-        "ELECTRICAL_FAULT",
-
-    LANDING_GEAR_FAULT:
-        "LANDING_GEAR_FAULT",
-
-    BIRD_STRIKE:
-        "BIRD_STRIKE"
+    MEDICAL_EMERGENCY: "MEDICAL_EMERGENCY",
+    CABIN_SMOKE: "CABIN_SMOKE",
+    SECURITY_INCIDENT: "SECURITY_INCIDENT",
+    ENGINE_FAILURE: "ENGINE_FAILURE",
+    ENGINE_FIRE: "ENGINE_FIRE",
+    HYDRAULIC_FAULT: "HYDRAULIC_FAULT",
+    ELECTRICAL_FAULT: "ELECTRICAL_FAULT",
+    LANDING_GEAR_FAULT: "LANDING_GEAR_FAULT",
+    BIRD_STRIKE: "BIRD_STRIKE"
 };
+
+const FIRE_TEST_MODE = true;
+const FIRE_TEST_DELAY_SECONDS = 5;
+const FIRE_TEST_MINIMUM_ALTITUDE_METERS = 2;
+const FIRE_TEST_TRIGGER_CHANCE = 1;
 
 const INCIDENT_DEFINITIONS = {
     MEDICAL_EMERGENCY: {
-        type:
-            INCIDENT_TYPES
-                .MEDICAL_EMERGENCY,
-
-        category:
-            "CABIN CREW",
-
-        level:
-            "EMERGENCY",
-
-        title:
-            "Medical emergency",
-
+        type: INCIDENT_TYPES.MEDICAL_EMERGENCY,
+        category: "CABIN CREW",
+        level: "EMERGENCY",
+        title: "Medical emergency",
         message:
             "A passenger requires urgent medical assistance. Request priority landing.",
-
-        major:
-            false,
-
-        passengerRelated:
-            true,
-
-        minimumAltitude:
-            0,
-
-        duration:
-            420
+        major: false,
+        passengerRelated: true,
+        minimumAltitude: 0,
+        duration: 420
     },
 
     CABIN_SMOKE: {
-        type:
-            INCIDENT_TYPES
-                .CABIN_SMOKE,
-
-        category:
-            "CABIN CREW",
-
-        level:
-            "EMERGENCY",
-
-        title:
-            "Smoke detected",
-
+        type: INCIDENT_TYPES.CABIN_SMOKE,
+        category: "CABIN CREW",
+        level: "EMERGENCY",
+        title: "Smoke detected",
         message:
             "Smoke has been detected in the cabin. Land as soon as practical.",
-
-        major:
-            true,
-
-        passengerRelated:
-            true,
-
-        minimumAltitude:
-            20,
-
-        duration:
-            300
+        major: true,
+        passengerRelated: true,
+        minimumAltitude: 20,
+        duration: 300
     },
 
     SECURITY_INCIDENT: {
-        type:
-            INCIDENT_TYPES
-                .SECURITY_INCIDENT,
-
-        category:
-            "CABIN CREW",
-
-        level:
-            "EMERGENCY",
-
-        title:
-            "Security incident",
-
+        type: INCIDENT_TYPES.SECURITY_INCIDENT,
+        category: "CABIN CREW",
+        level: "EMERGENCY",
+        title: "Security incident",
         message:
             "A serious security incident has been reported. Request priority landing immediately.",
-
-        major:
-            true,
-
-        passengerRelated:
-            true,
-
-        minimumAltitude:
-            20,
-
-        duration:
-            360
+        major: true,
+        passengerRelated: true,
+        minimumAltitude: 20,
+        duration: 360
     },
 
     ENGINE_FAILURE: {
-        type:
-            INCIDENT_TYPES
-                .ENGINE_FAILURE,
-
-        category:
-            "FLIGHT OPERATIONS",
-
-        level:
-            "EMERGENCY",
-
-        title:
-            "Engine power loss",
-
+        type: INCIDENT_TYPES.ENGINE_FAILURE,
+        category: "FLIGHT OPERATIONS",
+        level: "EMERGENCY",
+        title: "Engine power loss",
         message:
             "Engine power has been lost. Maintain airspeed and prepare to land.",
-
-        major:
-            true,
-
-        passengerRelated:
-            false,
-
-        minimumAltitude:
-            30,
-
-        duration:
-            0
+        major: true,
+        passengerRelated: false,
+        minimumAltitude: 30,
+        duration: 0
     },
 
     ENGINE_FIRE: {
-        type:
-            INCIDENT_TYPES
-                .ENGINE_FIRE,
-
-        category:
-            "FLIGHT OPERATIONS",
-
-        level:
-            "EMERGENCY",
-
-        title:
-            "Engine fire",
-
+        type: INCIDENT_TYPES.ENGINE_FIRE,
+        category: "FLIGHT OPERATIONS",
+        level: "EMERGENCY",
+        title: "Engine fire",
         message:
             "Engine fire detected. Reduce power and prepare for an emergency landing.",
-
-        major:
-            true,
-
-        passengerRelated:
-            false,
-
-        minimumAltitude:
-            30,
-
-        duration:
-            0
+        major: true,
+        passengerRelated: false,
+        minimumAltitude: FIRE_TEST_MINIMUM_ALTITUDE_METERS,
+        duration: 0
     },
 
     HYDRAULIC_FAULT: {
-        type:
-            INCIDENT_TYPES
-                .HYDRAULIC_FAULT,
-
-        category:
-            "FLIGHT OPERATIONS",
-
-        level:
-            "WARNING",
-
-        title:
-            "Hydraulic pressure warning",
-
+        type: INCIDENT_TYPES.HYDRAULIC_FAULT,
+        category: "FLIGHT OPERATIONS",
+        level: "WARNING",
+        title: "Hydraulic pressure warning",
         message:
             "Hydraulic pressure is decreasing. Control response may become slower.",
-
-        major:
-            false,
-
-        passengerRelated:
-            false,
-
-        minimumAltitude:
-            15,
-
-        duration:
-            0
+        major: false,
+        passengerRelated: false,
+        minimumAltitude: 15,
+        duration: 0
     },
 
     ELECTRICAL_FAULT: {
-        type:
-            INCIDENT_TYPES
-                .ELECTRICAL_FAULT,
-
-        category:
-            "FLIGHT OPERATIONS",
-
-        level:
-            "WARNING",
-
-        title:
-            "Electrical system fault",
-
+        type: INCIDENT_TYPES.ELECTRICAL_FAULT,
+        category: "FLIGHT OPERATIONS",
+        level: "WARNING",
+        title: "Electrical system fault",
         message:
             "An electrical system fault has been detected. Some instruments may be unavailable.",
-
-        major:
-            false,
-
-        passengerRelated:
-            false,
-
-        minimumAltitude:
-            10,
-
-        duration:
-            180
+        major: false,
+        passengerRelated: false,
+        minimumAltitude: 10,
+        duration: 180
     },
 
     LANDING_GEAR_FAULT: {
-        type:
-            INCIDENT_TYPES
-                .LANDING_GEAR_FAULT,
-
-        category:
-            "FLIGHT OPERATIONS",
-
-        level:
-            "WARNING",
-
-        title:
-            "Landing gear fault",
-
+        type: INCIDENT_TYPES.LANDING_GEAR_FAULT,
+        category: "FLIGHT OPERATIONS",
+        level: "WARNING",
+        title: "Landing gear fault",
         message:
             "Landing gear indication fault detected. Prepare for a precautionary landing.",
-
-        major:
-            false,
-
-        passengerRelated:
-            false,
-
-        minimumAltitude:
-            25,
-
-        duration:
-            0
+        major: false,
+        passengerRelated: false,
+        minimumAltitude: 25,
+        duration: 0
     },
 
     BIRD_STRIKE: {
-        type:
-            INCIDENT_TYPES
-                .BIRD_STRIKE,
-
-        category:
-            "AIR TRAFFIC CONTROL",
-
-        level:
-            "ADVISORY",
-
-        title:
-            "Possible bird strike",
-
+        type: INCIDENT_TYPES.BIRD_STRIKE,
+        category: "AIR TRAFFIC CONTROL",
+        level: "ADVISORY",
+        title: "Possible bird strike",
         message:
             "A possible bird strike has occurred. Monitor engine performance.",
-
-        major:
-            false,
-
-        passengerRelated:
-            false,
-
-        minimumAltitude:
-            5,
-
-        maximumAltitude:
-            900,
-
-        duration:
-            40
+        major: false,
+        passengerRelated: false,
+        minimumAltitude: 5,
+        maximumAltitude: 900,
+        duration: 40
     }
 };
 
@@ -309,10 +142,10 @@ function randomRange(
     return (
         minimum +
         Math.random() *
-        (
-            maximum -
-            minimum
-        )
+            (
+                maximum -
+                minimum
+            )
     );
 }
 
@@ -328,7 +161,7 @@ function chooseRandom(
     return values[
         Math.floor(
             Math.random() *
-            values.length
+                values.length
         )
     ];
 }
@@ -370,10 +203,15 @@ export class IncidentSystem {
         this.elapsedTime = 0;
 
         this.checkTimer =
-            randomRange(
-                this.minimumCheckInterval,
-                this.maximumCheckInterval
-            );
+            FIRE_TEST_MODE
+                ? FIRE_TEST_DELAY_SECONDS
+                : randomRange(
+                    this.minimumCheckInterval,
+                    this.maximumCheckInterval
+                );
+
+        this.fireTestTriggered =
+            false;
 
         this.activeIncidents =
             new Map();
@@ -388,19 +226,8 @@ export class IncidentSystem {
         this.maximumMinorIncidents = 2;
         this.maximumPassengerIncidents = 1;
 
-        this.effectState = {
-            enginePowerMultiplier: 1,
-            asymmetricThrust: 0,
-            pitchControlMultiplier: 1,
-            rollControlMultiplier: 1,
-            steeringMultiplier: 1,
-            brakingMultiplier: 1,
-            instrumentVisibility: 1,
-            landingGearIntegrity: 1,
-            engineFireActive: false,
-            engineFailureActive: false,
-            cabinSmokeActive: false
-        };
+        this.effectState =
+            this.createDefaultEffectState();
 
         this.onIncidentStarted =
             null;
@@ -419,6 +246,22 @@ export class IncidentSystem {
 
         this.onCameraShakeRequested =
             null;
+    }
+
+    createDefaultEffectState() {
+        return {
+            enginePowerMultiplier: 1,
+            asymmetricThrust: 0,
+            pitchControlMultiplier: 1,
+            rollControlMultiplier: 1,
+            steeringMultiplier: 1,
+            brakingMultiplier: 1,
+            instrumentVisibility: 1,
+            landingGearIntegrity: 1,
+            engineFireActive: false,
+            engineFailureActive: false,
+            cabinSmokeActive: false
+        };
     }
 
     setCallbacks({
@@ -470,6 +313,15 @@ export class IncidentSystem {
             deltaTime
         );
 
+        if (FIRE_TEST_MODE) {
+            this.updateFireTest({
+                airborne,
+                altitudeMeters
+            });
+
+            return;
+        }
+
         this.checkTimer -=
             deltaTime;
 
@@ -492,6 +344,49 @@ export class IncidentSystem {
             verticalSpeed,
             approachingRunway
         });
+    }
+
+    updateFireTest({
+        airborne,
+        altitudeMeters
+    }) {
+        if (
+            this.fireTestTriggered ||
+            this.activeIncidents.size > 0
+        ) {
+            return;
+        }
+
+        if (
+            !airborne ||
+            altitudeMeters <
+                FIRE_TEST_MINIMUM_ALTITUDE_METERS
+        ) {
+            return;
+        }
+
+        this.checkTimer -=
+            1 / 60;
+
+        const fireDelayPassed =
+            this.elapsedTime >=
+            FIRE_TEST_DELAY_SECONDS;
+
+        if (!fireDelayPassed) {
+            return;
+        }
+
+        if (
+            Math.random() <=
+            FIRE_TEST_TRIGGER_CHANCE
+        ) {
+            this.fireTestTriggered =
+                true;
+
+            this.startIncident(
+                INCIDENT_TYPES.ENGINE_FIRE
+            );
+        }
     }
 
     tryGenerateIncident({
@@ -535,7 +430,7 @@ export class IncidentSystem {
             allowMinorIncident &&
             roll <
                 this.majorIncidentChance +
-                this.minorIncidentChance
+                    this.minorIncidentChance
         ) {
             requestedSeverity =
                 "MINOR";
@@ -631,11 +526,9 @@ export class IncidentSystem {
 
         if (
             incident.type ===
-                INCIDENT_TYPES
-                    .ENGINE_FAILURE ||
+                INCIDENT_TYPES.ENGINE_FAILURE ||
             incident.type ===
-                INCIDENT_TYPES
-                    .ENGINE_FIRE
+                INCIDENT_TYPES.ENGINE_FIRE
         ) {
             if (
                 !airborne ||
@@ -689,12 +582,17 @@ export class IncidentSystem {
 
         const incident = {
             ...definition,
+
             startedAt:
                 this.elapsedTime,
+
             elapsed: 0,
+
             remainingTime:
                 definition.duration,
+
             resolved: false,
+
             affectedEngine:
                 this.selectAffectedEngine(
                     incidentType
@@ -707,10 +605,11 @@ export class IncidentSystem {
         );
 
         this.incidentHistory.push({
-            type:
-                incidentType,
+            type: incidentType,
             startedAt:
-                this.elapsedTime
+                this.elapsedTime,
+            affectedEngine:
+                incident.affectedEngine
         });
 
         if (definition.major) {
@@ -744,11 +643,9 @@ export class IncidentSystem {
     ) {
         if (
             incidentType !==
-                INCIDENT_TYPES
-                    .ENGINE_FAILURE &&
+                INCIDENT_TYPES.ENGINE_FAILURE &&
             incidentType !==
-                INCIDENT_TYPES
-                    .ENGINE_FIRE
+                INCIDENT_TYPES.ENGINE_FIRE
         ) {
             return null;
         }
@@ -756,7 +653,13 @@ export class IncidentSystem {
         const engineCount =
             this.aircraftDefinition
                 ?.engineCount ??
-            1;
+            (
+                this.aircraftDefinition
+                    ?.id ===
+                    "airliner100"
+                    ? 2
+                    : 1
+            );
 
         if (engineCount <= 1) {
             return "MAIN";
@@ -770,10 +673,12 @@ export class IncidentSystem {
             );
         }
 
-        return `ENGINE_${Math.floor(
-            Math.random() *
-                engineCount
-        ) + 1}`;
+        return `ENGINE_${
+            Math.floor(
+                Math.random() *
+                    engineCount
+            ) + 1
+        }`;
     }
 
     applyIncidentEffect(
@@ -782,12 +687,9 @@ export class IncidentSystem {
         switch (
             incident.type
         ) {
-            case INCIDENT_TYPES
-                .ENGINE_FAILURE: {
+            case INCIDENT_TYPES.ENGINE_FAILURE: {
                 const engineCount =
-                    this.aircraftDefinition
-                        ?.engineCount ??
-                    1;
+                    this.getEngineCount();
 
                 this.effectState
                     .engineFailureActive =
@@ -801,35 +703,18 @@ export class IncidentSystem {
                             engineCount -
                             1
                         ) /
-                        engineCount;
+                            engineCount;
 
-                if (
-                    incident.affectedEngine ===
-                        "LEFT"
-                ) {
-                    this.effectState
-                        .asymmetricThrust =
-                        0.16;
-                }
-
-                if (
-                    incident.affectedEngine ===
-                        "RIGHT"
-                ) {
-                    this.effectState
-                        .asymmetricThrust =
-                        -0.16;
-                }
+                this.applyAsymmetricThrust(
+                    incident.affectedEngine
+                );
 
                 break;
             }
 
-            case INCIDENT_TYPES
-                .ENGINE_FIRE: {
+            case INCIDENT_TYPES.ENGINE_FIRE: {
                 const engineCount =
-                    this.aircraftDefinition
-                        ?.engineCount ??
-                    1;
+                    this.getEngineCount();
 
                 this.effectState
                     .engineFireActive =
@@ -848,6 +733,10 @@ export class IncidentSystem {
                                 engineCount
                         );
 
+                this.applyAsymmetricThrust(
+                    incident.affectedEngine
+                );
+
                 this.onFireRequested?.({
                     active: true,
                     affectedEngine:
@@ -857,18 +746,21 @@ export class IncidentSystem {
 
                 this.onSmokeRequested?.({
                     active: true,
-                    smokeType:
-                        "BLACK",
+                    smokeType: "BLACK",
                     affectedEngine:
                         incident
                             .affectedEngine
                 });
 
+                this.onCameraShakeRequested?.({
+                    duration: 1.5,
+                    strength: 0.14
+                });
+
                 break;
             }
 
-            case INCIDENT_TYPES
-                .HYDRAULIC_FAULT: {
+            case INCIDENT_TYPES.HYDRAULIC_FAULT: {
                 this.effectState
                     .pitchControlMultiplier =
                     0.52;
@@ -884,8 +776,7 @@ export class IncidentSystem {
                 break;
             }
 
-            case INCIDENT_TYPES
-                .ELECTRICAL_FAULT: {
+            case INCIDENT_TYPES.ELECTRICAL_FAULT: {
                 this.effectState
                     .instrumentVisibility =
                     0.38;
@@ -893,8 +784,7 @@ export class IncidentSystem {
                 break;
             }
 
-            case INCIDENT_TYPES
-                .LANDING_GEAR_FAULT: {
+            case INCIDENT_TYPES.LANDING_GEAR_FAULT: {
                 this.effectState
                     .landingGearIntegrity =
                     0.42;
@@ -906,25 +796,21 @@ export class IncidentSystem {
                 break;
             }
 
-            case INCIDENT_TYPES
-                .CABIN_SMOKE: {
+            case INCIDENT_TYPES.CABIN_SMOKE: {
                 this.effectState
                     .cabinSmokeActive =
                     true;
 
                 this.onSmokeRequested?.({
                     active: true,
-                    smokeType:
-                        "GRAY",
-                    affectedEngine:
-                        null
+                    smokeType: "GRAY",
+                    affectedEngine: null
                 });
 
                 break;
             }
 
-            case INCIDENT_TYPES
-                .BIRD_STRIKE: {
+            case INCIDENT_TYPES.BIRD_STRIKE: {
                 this.effectState
                     .enginePowerMultiplier =
                     Math.min(
@@ -943,6 +829,52 @@ export class IncidentSystem {
 
             default:
                 break;
+        }
+    }
+
+    getEngineCount() {
+        if (
+            Number.isFinite(
+                this.aircraftDefinition
+                    ?.engineCount
+            )
+        ) {
+            return (
+                this.aircraftDefinition
+                    .engineCount
+            );
+        }
+
+        if (
+            this.aircraftDefinition
+                ?.id ===
+            "airliner100"
+        ) {
+            return 2;
+        }
+
+        return 1;
+    }
+
+    applyAsymmetricThrust(
+        affectedEngine
+    ) {
+        if (
+            affectedEngine ===
+            "LEFT"
+        ) {
+            this.effectState
+                .asymmetricThrust =
+                0.16;
+        }
+
+        if (
+            affectedEngine ===
+            "RIGHT"
+        ) {
+            this.effectState
+                .asymmetricThrust =
+                -0.16;
         }
     }
 
@@ -1020,32 +952,18 @@ export class IncidentSystem {
     }
 
     rebuildEffectState() {
-        this.effectState = {
-            enginePowerMultiplier: 1,
-            asymmetricThrust: 0,
-            pitchControlMultiplier: 1,
-            rollControlMultiplier: 1,
-            steeringMultiplier: 1,
-            brakingMultiplier: 1,
-            instrumentVisibility: 1,
-            landingGearIntegrity: 1,
-            engineFireActive: false,
-            engineFailureActive: false,
-            cabinSmokeActive: false
-        };
+        this.effectState =
+            this.createDefaultEffectState();
 
         this.onFireRequested?.({
             active: false,
-            affectedEngine:
-                null
+            affectedEngine: null
         });
 
         this.onSmokeRequested?.({
             active: false,
-            smokeType:
-                null,
-            affectedEngine:
-                null
+            smokeType: null,
+            affectedEngine: null
         });
 
         for (
@@ -1102,16 +1020,27 @@ export class IncidentSystem {
 
     getState() {
         return {
+            fireTestMode:
+                FIRE_TEST_MODE,
+
+            fireTestTriggered:
+                this.fireTestTriggered,
+
             elapsedTime:
                 this.elapsedTime,
+
             activeIncidents:
                 this.getActiveIncidents(),
+
             majorIncidentCount:
                 this.majorIncidentCount,
+
             minorIncidentCount:
                 this.minorIncidentCount,
+
             passengerIncidentCount:
                 this.passengerIncidentCount,
+
             effects:
                 this.getEffects()
         };
@@ -1120,6 +1049,7 @@ export class IncidentSystem {
     reset({
         aircraftDefinition =
             this.aircraftDefinition,
+
         passengers =
             this.passengers
     } = {}) {
@@ -1135,13 +1065,17 @@ export class IncidentSystem {
         this.elapsedTime = 0;
 
         this.checkTimer =
-            randomRange(
-                this.minimumCheckInterval,
-                this.maximumCheckInterval
-            );
+            FIRE_TEST_MODE
+                ? FIRE_TEST_DELAY_SECONDS
+                : randomRange(
+                    this.minimumCheckInterval,
+                    this.maximumCheckInterval
+                );
+
+        this.fireTestTriggered =
+            false;
 
         this.activeIncidents.clear();
-
         this.incidentHistory = [];
 
         this.majorIncidentCount = 0;
