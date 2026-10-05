@@ -9,6 +9,18 @@ import {
 } from "../environment/createcity.js";
 
 import {
+    TimeOfDaySystem
+} from "../environment/timeofday.js";
+
+import {
+    WeatherSystem
+} from "../environment/weather.js";
+
+import {
+    IncidentSystem
+} from "../events/incidentsystem.js";
+
+import {
     getAircraftById
 } from "../aircraft/aircraftcatalog.js";
 
@@ -28,6 +40,28 @@ export class Game {
                 this.selectedAircraftId
             );
 
+        this.flightSettings = {
+            startHour:
+                options.flightSettings
+                    ?.startHour ??
+                7,
+
+            timeScale:
+                options.flightSettings
+                    ?.timeScale ??
+                10,
+
+            initialWeather:
+                options.flightSettings
+                    ?.initialWeather ??
+                "CLEAR",
+
+            passengers:
+                options.flightSettings
+                    ?.passengers ??
+                0
+        };
+
         this.scene = null;
         this.camera = null;
         this.renderer = null;
@@ -35,6 +69,13 @@ export class Game {
         this.airport = null;
         this.city = null;
         this.aircraft = null;
+
+        this.hemisphereLight = null;
+        this.sunlight = null;
+
+        this.timeOfDaySystem = null;
+        this.weatherSystem = null;
+        this.incidentSystem = null;
 
         this.clock =
             new THREE.Clock();
@@ -61,7 +102,8 @@ export class Game {
             pitch: 0,
             roll: 0,
             brakeActive: false,
-            airborne: false
+            airborne: false,
+            crashed: false
         };
 
         this.cameraMode =
@@ -79,18 +121,16 @@ export class Game {
         this.hudRoot = null;
         this.hudValues = {};
 
-        this.timeFormatter =
-            new Intl.DateTimeFormat(
-                "en-US",
-                {
-                    timeZone:
-                        "America/New_York",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    second: "2-digit",
-                    hour12: false
-                }
-            );
+        this.messageRoot = null;
+        this.messageQueue = [];
+
+        this.weatherState = "CLEAR";
+        this.simulationTime = "07:00";
+
+        this.cameraShake = {
+            remaining: 0,
+            strength: 0
+        };
 
         this.animationFrameId = null;
         this.isRunning = false;
@@ -121,13 +161,34 @@ export class Game {
         this.createAirport();
         this.createEnvironment();
         this.createAircraft();
+        this.createMessageDisplay();
         this.createHUD();
+        this.createTimeSystem();
+        this.createWeatherSystem();
+        this.createIncidentSystem();
         this.bindEvents();
 
         this.isRunning = true;
 
         this.clock.start();
         this.animate();
+
+        this.showMessage({
+            source:
+                "AIR TRAFFIC CONTROL",
+
+            level:
+                "INFO",
+
+            title:
+                "Flight cleared",
+
+            message:
+                `${this.aircraftDefinition.displayName} is cleared for departure.`,
+
+            duration:
+                7
+        });
 
         console.log(
             `Started with ${this.aircraftDefinition.displayName}.`
@@ -169,7 +230,7 @@ export class Game {
                 48,
                 width / height,
                 0.25,
-                30000
+                18000
             );
     }
 
@@ -212,7 +273,7 @@ export class Game {
     }
 
     createLights() {
-        const hemisphereLight =
+        this.hemisphereLight =
             new THREE.HemisphereLight(
                 0xd9efff,
                 0x3d5134,
@@ -220,26 +281,26 @@ export class Game {
             );
 
         this.scene.add(
-            hemisphereLight
+            this.hemisphereLight
         );
 
-        const sunlight =
+        this.sunlight =
             new THREE.DirectionalLight(
                 0xffffff,
                 2.4
             );
 
-        sunlight.position.set(
+        this.sunlight.position.set(
             900,
             1400,
             700
         );
 
-        sunlight.castShadow =
+        this.sunlight.castShadow =
             false;
 
         this.scene.add(
-            sunlight
+            this.sunlight
         );
     }
 
@@ -354,12 +415,10 @@ export class Game {
             .speedMetersPerSecond =
             0;
 
-        this.flightState
-            .verticalSpeed =
+        this.flightState.verticalSpeed =
             0;
 
-        this.flightState
-            .altitudeMeters =
+        this.flightState.altitudeMeters =
             0;
 
         this.flightState.heading =
@@ -371,13 +430,629 @@ export class Game {
         this.flightState.roll =
             0;
 
-        this.flightState
-            .brakeActive =
+        this.flightState.brakeActive =
             false;
 
-        this.flightState
-            .airborne =
+        this.flightState.airborne =
             false;
+
+        this.flightState.crashed =
+            false;
+    }
+
+    createTimeSystem() {
+        this.timeOfDaySystem =
+            new TimeOfDaySystem({
+                scene:
+                    this.scene,
+
+                sunlight:
+                    this.sunlight,
+
+                hemisphereLight:
+                    this.hemisphereLight,
+
+                city:
+                    this.city,
+
+                airport:
+                    this.airport,
+
+                startHour:
+                    this.flightSettings
+                        .startHour,
+
+                timeScale:
+                    this.flightSettings
+                        .timeScale
+            });
+
+        this.timeOfDaySystem.setCallbacks({
+            onPeriodChanged:
+                ({ period }) => {
+                    if (
+                        period ===
+                        "NIGHT"
+                    ) {
+                        this.showMessage({
+                            source:
+                                "AIR TRAFFIC CONTROL",
+
+                            level:
+                                "INFO",
+
+                            title:
+                                "Night operations",
+
+                            message:
+                                "Runway and taxiway lighting is now active.",
+
+                            duration:
+                                8
+                        });
+                    }
+                },
+
+            onSunsetApproaching:
+                () => {
+                    this.showMessage({
+                        source:
+                            "AIR TRAFFIC CONTROL",
+
+                        level:
+                            "INFO",
+
+                        title:
+                            "Sunset approaching",
+
+                        message:
+                            "Sunset is approaching. Airport lighting is being activated.",
+
+                        duration:
+                            9
+                    });
+                },
+
+            onSunriseApproaching:
+                () => {
+                    this.showMessage({
+                        source:
+                            "AIR TRAFFIC CONTROL",
+
+                        level:
+                            "INFO",
+
+                        title:
+                            "Sunrise approaching",
+
+                        message:
+                            "Sunrise is approaching. Visibility should improve shortly.",
+
+                        duration:
+                            8
+                    });
+                }
+        });
+    }
+
+    createWeatherSystem() {
+        this.weatherSystem =
+            new WeatherSystem({
+                scene:
+                    this.scene,
+
+                camera:
+                    this.camera,
+
+                renderer:
+                    this.renderer,
+
+                sunlight:
+                    this.sunlight,
+
+                hemisphereLight:
+                    this.hemisphereLight,
+
+                initialWeather:
+                    this.flightSettings
+                        .initialWeather,
+
+                minimumWeatherDuration:
+                    150,
+
+                maximumWeatherDuration:
+                    360,
+
+                warningDuration:
+                    25,
+
+                transitionDuration:
+                    35
+            });
+
+        this.weatherState =
+            this.flightSettings
+                .initialWeather;
+
+        this.weatherSystem.setCallbacks({
+            onWeatherForecast:
+                ({
+                    currentWeather,
+                    targetWeather
+                }) => {
+                    this.handleWeatherForecast(
+                        currentWeather,
+                        targetWeather
+                    );
+                },
+
+            onWeatherChanged:
+                ({
+                    currentWeather
+                }) => {
+                    this.weatherState =
+                        currentWeather;
+
+                    this.showMessage({
+                        source:
+                            "WEATHER CENTER",
+
+                        level:
+                            currentWeather ===
+                            "RAIN"
+                                ? "WARNING"
+                                : "INFO",
+
+                        title:
+                            "Weather updated",
+
+                        message:
+                            `Current airport weather is now ${currentWeather}.`,
+
+                        duration:
+                            8
+                    });
+                },
+
+            onRainStarted:
+                () => {
+                    this.showMessage({
+                        source:
+                            "WEATHER CENTER",
+
+                        level:
+                            "WARNING",
+
+                        title:
+                            "Rain started",
+
+                        message:
+                            "Rain is reducing visibility and runway braking performance.",
+
+                        duration:
+                            11
+                    });
+                },
+
+            onRainStopped:
+                () => {
+                    this.showMessage({
+                        source:
+                            "WEATHER CENTER",
+
+                        level:
+                            "INFO",
+
+                        title:
+                            "Rain weakening",
+
+                        message:
+                            "Rain has ended. Visibility should improve gradually.",
+
+                        duration:
+                            8
+                    });
+                }
+        });
+    }
+
+    handleWeatherForecast(
+        currentWeather,
+        targetWeather
+    ) {
+        if (
+            targetWeather ===
+            "CLOUDY"
+        ) {
+            this.showMessage({
+                source:
+                    "WEATHER CENTER",
+
+                level:
+                    "ADVISORY",
+
+                title:
+                    "Cloud cover increasing",
+
+                message:
+                    "Increasing cloud cover is expected. Visibility may decrease.",
+
+                duration:
+                    10
+            });
+
+            return;
+        }
+
+        if (
+            targetWeather ===
+            "RAIN"
+        ) {
+            this.showMessage({
+                source:
+                    "WEATHER CENTER",
+
+                level:
+                    "WARNING",
+
+                title:
+                    "Rain forecast",
+
+                message:
+                    "Rain is expected shortly. Use caution during takeoff and landing.",
+
+                duration:
+                    12
+            });
+
+            return;
+        }
+
+        if (
+            currentWeather !==
+            "CLEAR"
+        ) {
+            this.showMessage({
+                source:
+                    "WEATHER CENTER",
+
+                level:
+                    "INFO",
+
+                title:
+                    "Conditions improving",
+
+                message:
+                    "Cloud cover is clearing. Visibility should improve.",
+
+                duration:
+                    8
+            });
+        }
+    }
+
+    createIncidentSystem() {
+        this.incidentSystem =
+            new IncidentSystem({
+                aircraftDefinition:
+                    this.aircraftDefinition,
+
+                passengers:
+                    this.flightSettings
+                        .passengers,
+
+                minimumMajorIncidentTime:
+                    90,
+
+                minimumCheckInterval:
+                    45,
+
+                maximumCheckInterval:
+                    85,
+
+                majorIncidentChance:
+                    0.035,
+
+                minorIncidentChance:
+                    0.09
+            });
+
+        this.incidentSystem.setCallbacks({
+            onIncidentStarted:
+                (incident) => {
+                    this.showMessage({
+                        source:
+                            incident.category,
+
+                        level:
+                            incident.level,
+
+                        title:
+                            incident.title,
+
+                        message:
+                            incident.message,
+
+                        duration:
+                            incident.level ===
+                            "EMERGENCY"
+                                ? 14
+                                : 10
+                    });
+                },
+
+            onIncidentEnded:
+                (incident) => {
+                    if (
+                        incident.reason ===
+                        "RESOLVED"
+                    ) {
+                        this.showMessage({
+                            source:
+                                "FLIGHT OPERATIONS",
+
+                            level:
+                                "INFO",
+
+                            title:
+                                "Incident resolved",
+
+                            message:
+                                `${incident.title} has been resolved.`,
+
+                            duration:
+                                7
+                        });
+                    }
+                },
+
+            onFireRequested:
+                ({
+                    active,
+                    affectedEngine
+                }) => {
+                    if (active) {
+                        this.aircraft.userData
+                            .activeFirePoint =
+                            affectedEngine;
+
+                        this.aircraft.userData
+                            .engineFireActive =
+                            true;
+                    } else {
+                        this.aircraft.userData
+                            .activeFirePoint =
+                            null;
+
+                        this.aircraft.userData
+                            .engineFireActive =
+                            false;
+                    }
+                },
+
+            onSmokeRequested:
+                ({
+                    active,
+                    smokeType
+                }) => {
+                    this.aircraft.userData
+                        .smokeActive =
+                        active;
+
+                    this.aircraft.userData
+                        .smokeType =
+                        smokeType;
+                },
+
+            onCameraShakeRequested:
+                ({
+                    duration,
+                    strength
+                }) => {
+                    this.cameraShake.remaining =
+                        duration;
+
+                    this.cameraShake.strength =
+                        strength;
+                }
+        });
+    }
+
+    createMessageDisplay() {
+        this.messageRoot?.remove();
+
+        this.messageRoot =
+            document.createElement(
+                "div"
+            );
+
+        this.messageRoot.id =
+            "flight-messages";
+
+        Object.assign(
+            this.messageRoot.style,
+            {
+                position:
+                    "fixed",
+
+                top:
+                    "78px",
+
+                left:
+                    "14px",
+
+                zIndex:
+                    "80",
+
+                display:
+                    "flex",
+
+                flexDirection:
+                    "column",
+
+                gap:
+                    "10px",
+
+                width:
+                    "min(380px, calc(100vw - 28px))",
+
+                pointerEvents:
+                    "none"
+            }
+        );
+
+        document.body.appendChild(
+            this.messageRoot
+        );
+    }
+
+    showMessage({
+        source,
+        level,
+        title,
+        message,
+        duration = 8
+    }) {
+        if (!this.messageRoot) {
+            return;
+        }
+
+        const colors = {
+            INFO:
+                "#61c9ff",
+
+            ADVISORY:
+                "#f5d45b",
+
+            WARNING:
+                "#ff9f43",
+
+            EMERGENCY:
+                "#ff5b5b"
+        };
+
+        const accentColor =
+            colors[level] ||
+            colors.INFO;
+
+        const messageElement =
+            document.createElement(
+                "article"
+            );
+
+        Object.assign(
+            messageElement.style,
+            {
+                padding:
+                    "13px 15px",
+
+                border:
+                    `1px solid ${accentColor}`,
+
+                borderLeft:
+                    `5px solid ${accentColor}`,
+
+                borderRadius:
+                    "10px",
+
+                color:
+                    "#ffffff",
+
+                background:
+                    "rgba(6, 16, 26, 0.9)",
+
+                backdropFilter:
+                    "blur(8px)",
+
+                boxShadow:
+                    "0 10px 28px rgba(0,0,0,0.28)",
+
+                opacity:
+                    "0",
+
+                transform:
+                    "translateX(-35px)",
+
+                transition:
+                    "opacity 220ms ease, transform 220ms ease"
+            }
+        );
+
+        messageElement.innerHTML = `
+            <div
+                style="
+                    color: ${accentColor};
+                    font-size: 10px;
+                    font-weight: 800;
+                    letter-spacing: 0.13em;
+                "
+            >
+                ${source}
+            </div>
+
+            <div
+                style="
+                    margin-top: 4px;
+                    font-size: 15px;
+                    font-weight: 800;
+                "
+            >
+                ${title}
+            </div>
+
+            <div
+                style="
+                    margin-top: 6px;
+                    color: #d3e0e8;
+                    font-size: 13px;
+                    line-height: 1.45;
+                "
+            >
+                ${message}
+            </div>
+        `;
+
+        this.messageRoot.prepend(
+            messageElement
+        );
+
+        while (
+            this.messageRoot.children
+                .length >
+            3
+        ) {
+            this.messageRoot
+                .lastElementChild
+                ?.remove();
+        }
+
+        window.requestAnimationFrame(
+            () => {
+                messageElement.style.opacity =
+                    "1";
+
+                messageElement.style.transform =
+                    "translateX(0)";
+            }
+        );
+
+        window.setTimeout(
+            () => {
+                messageElement.style.opacity =
+                    "0";
+
+                messageElement.style.transform =
+                    "translateX(-35px)";
+
+                window.setTimeout(
+                    () => {
+                        messageElement.remove();
+                    },
+                    260
+                );
+            },
+            duration * 1000
+        );
     }
 
     createHUD() {
@@ -394,14 +1069,26 @@ export class Game {
         Object.assign(
             this.hudRoot.style,
             {
-                position: "fixed",
-                inset: "0",
-                zIndex: "20",
-                pointerEvents: "none",
-                color: "#ffffff",
+                position:
+                    "fixed",
+
+                inset:
+                    "0",
+
+                zIndex:
+                    "20",
+
+                pointerEvents:
+                    "none",
+
+                color:
+                    "#ffffff",
+
                 fontFamily:
                     "Arial, sans-serif",
-                userSelect: "none"
+
+                userSelect:
+                    "none"
             }
         );
 
@@ -411,11 +1098,11 @@ export class Game {
                     position: absolute;
                     top: 14px;
                     right: 14px;
-                    width: 250px;
+                    width: 260px;
                     padding: 12px 14px;
-                    border: 1px solid rgba(112, 200, 255, 0.65);
+                    border: 1px solid rgba(112,200,255,0.65);
                     border-radius: 10px;
-                    background: rgba(5, 18, 32, 0.84);
+                    background: rgba(5,18,32,0.84);
                     backdrop-filter: blur(6px);
                     font-family: Consolas, monospace;
                     font-size: 12px;
@@ -435,15 +1122,29 @@ export class Game {
 
                 <div class="hud-row">
                     <span>AIRCRAFT</span>
-                    <strong id="hud-aircraft">
+                    <strong>
                         ${this.aircraftDefinition.displayName}
                     </strong>
                 </div>
 
                 <div class="hud-row">
-                    <span>TIME ET</span>
+                    <span>TIME</span>
                     <strong id="hud-time">
-                        00:00:00
+                        07:00
+                    </strong>
+                </div>
+
+                <div class="hud-row">
+                    <span>TIME RATE</span>
+                    <strong>
+                        ${this.flightSettings.timeScale}x
+                    </strong>
+                </div>
+
+                <div class="hud-row">
+                    <span>WEATHER</span>
+                    <strong id="hud-weather">
+                        ${this.weatherState}
                     </strong>
                 </div>
 
@@ -501,7 +1202,7 @@ export class Game {
                         height: 6px;
                         margin-top: 8px;
                         border-radius: 999px;
-                        background: rgba(255, 255, 255, 0.12);
+                        background: rgba(255,255,255,0.12);
                         overflow: hidden;
                     "
                 >
@@ -510,12 +1211,11 @@ export class Game {
                         style="
                             width: 0;
                             height: 100%;
-                            background:
-                                linear-gradient(
-                                    90deg,
-                                    #33c7ff,
-                                    #48f08b
-                                );
+                            background: linear-gradient(
+                                90deg,
+                                #33c7ff,
+                                #48f08b
+                            );
                         "
                     ></div>
                 </div>
@@ -604,11 +1304,17 @@ export class Game {
             Object.assign(
                 row.style,
                 {
-                    display: "flex",
+                    display:
+                        "flex",
+
                     justifyContent:
                         "space-between",
-                    gap: "10px",
-                    padding: "3px 0"
+
+                    gap:
+                        "10px",
+
+                    padding:
+                        "3px 0"
                 }
             );
 
@@ -627,17 +1333,32 @@ export class Game {
             Object.assign(
                 button.style,
                 {
-                    minWidth: "72px",
-                    minHeight: "46px",
-                    padding: "8px 10px",
+                    minWidth:
+                        "72px",
+
+                    minHeight:
+                        "46px",
+
+                    padding:
+                        "8px 10px",
+
                     border:
                         "1px solid rgba(255,255,255,0.4)",
-                    borderRadius: "10px",
-                    color: "#ffffff",
+
+                    borderRadius:
+                        "10px",
+
+                    color:
+                        "#ffffff",
+
                     background:
                         "rgba(10,25,40,0.88)",
-                    fontWeight: "700",
-                    touchAction: "none"
+
+                    fontWeight:
+                        "700",
+
+                    touchAction:
+                        "none"
                 }
             );
         }
@@ -645,6 +1366,11 @@ export class Game {
         this.hudValues.time =
             this.hudRoot.querySelector(
                 "#hud-time"
+            );
+
+        this.hudValues.weather =
+            this.hudRoot.querySelector(
+                "#hud-weather"
             );
 
         this.hudValues.speed =
@@ -730,12 +1456,9 @@ export class Game {
                 "click",
                 (event) => {
                     event.preventDefault();
-
                     this.toggleCamera();
                 }
             );
-
-        this.updateHUD();
     }
 
     bindTouchControl(
@@ -747,35 +1470,33 @@ export class Game {
                 selector
             );
 
-        const activate = (
-            event
-        ) => {
-            event.preventDefault();
+        const activate =
+            (event) => {
+                event.preventDefault();
 
-            this.touchState[action] =
-                true;
+                this.touchState[action] =
+                    true;
 
-            button.style.filter =
-                "brightness(1.5)";
+                button.style.filter =
+                    "brightness(1.5)";
 
-            button.style.transform =
-                "translateY(2px)";
-        };
+                button.style.transform =
+                    "translateY(2px)";
+            };
 
-        const deactivate = (
-            event
-        ) => {
-            event.preventDefault();
+        const deactivate =
+            (event) => {
+                event.preventDefault();
 
-            this.touchState[action] =
-                false;
+                this.touchState[action] =
+                    false;
 
-            button.style.filter =
-                "none";
+                button.style.filter =
+                    "none";
 
-            button.style.transform =
-                "none";
-        };
+                button.style.transform =
+                    "none";
+            };
 
         button.addEventListener(
             "pointerdown",
@@ -844,11 +1565,11 @@ export class Game {
         }
 
         if (
-            event.code === "KeyC" &&
+            event.code ===
+                "KeyC" &&
             !event.repeat
         ) {
             this.toggleCamera();
-
             return;
         }
 
@@ -891,6 +1612,13 @@ export class Game {
     updateControls(
         deltaTime
     ) {
+        if (
+            this.flightState
+                .crashed
+        ) {
+            return;
+        }
+
         const throttleUp =
             this.isActive(
                 ["KeyW"],
@@ -1001,6 +1729,14 @@ export class Game {
             this.aircraftDefinition
                 .performance;
 
+        const incidentEffects =
+            this.incidentSystem
+                ?.getEffects() ??
+            {
+                steeringMultiplier:
+                    1
+            };
+
         const speedEffect =
             THREE.MathUtils.clamp(
                 this.flightState
@@ -1020,7 +1756,9 @@ export class Game {
             THREE.MathUtils.degToRad(
                 handling
                     .groundSteeringRateDegrees
-            );
+            ) *
+            incidentEffects
+                .steeringMultiplier;
 
         if (turnLeft) {
             this.flightState.heading +=
@@ -1104,17 +1842,35 @@ export class Game {
             this.aircraftDefinition
                 .handlingConfig;
 
+        const incidentEffects =
+            this.incidentSystem
+                ?.getEffects() ??
+            {
+                pitchControlMultiplier:
+                    1,
+
+                rollControlMultiplier:
+                    1,
+
+                asymmetricThrust:
+                    0
+            };
+
         const pitchRate =
             THREE.MathUtils.degToRad(
                 handling
                     .pitchRateDegrees
-            );
+            ) *
+            incidentEffects
+                .pitchControlMultiplier;
 
         const rollRate =
             THREE.MathUtils.degToRad(
                 handling
                     .rollRateDegrees
-            );
+            ) *
+            incidentEffects
+                .rollControlMultiplier;
 
         if (pitchUp) {
             this.flightState.pitch +=
@@ -1181,12 +1937,17 @@ export class Game {
             );
 
         this.flightState.heading +=
-            Math.sin(
-                this.flightState.roll
-            ) *
-            THREE.MathUtils.degToRad(
-                handling
-                    .turnRateDegrees
+            (
+                Math.sin(
+                    this.flightState
+                        .roll
+                ) *
+                THREE.MathUtils.degToRad(
+                    handling
+                        .turnRateDegrees
+                ) +
+                incidentEffects
+                    .asymmetricThrust
             ) *
             deltaTime;
     }
@@ -1212,6 +1973,27 @@ export class Game {
             this.aircraftDefinition
                 .performance;
 
+        const incidentEffects =
+            this.incidentSystem
+                ?.getEffects() ??
+            {
+                enginePowerMultiplier:
+                    1,
+
+                brakingMultiplier:
+                    1
+            };
+
+        const weatherBraking =
+            this.weatherSystem
+                ?.getBrakingMultiplier() ??
+            1;
+
+        const weatherDrag =
+            this.weatherSystem
+                ?.getDragMultiplier() ??
+            1;
+
         const speed =
             this.flightState
                 .speedMetersPerSecond;
@@ -1219,13 +2001,14 @@ export class Game {
         const engineAcceleration =
             this.flightState.throttle *
             (
-                this.flightState
-                    .airborne
+                this.flightState.airborne
                     ? performance
                         .airEngineAcceleration
                     : performance
                         .groundEngineAcceleration
-            );
+            ) *
+            incidentEffects
+                .enginePowerMultiplier;
 
         const rollingResistance =
             this.flightState.airborne
@@ -1238,6 +2021,7 @@ export class Game {
         const aerodynamicDrag =
             performance
                 .aerodynamicDrag *
+            weatherDrag *
             speed *
             speed;
 
@@ -1247,7 +2031,10 @@ export class Game {
             !this.flightState
                 .airborne
                 ? performance
-                    .brakeDeceleration
+                    .brakeDeceleration *
+                    weatherBraking *
+                    incidentEffects
+                        .brakingMultiplier
                 : 0;
 
         const acceleration =
@@ -1401,137 +2188,17 @@ export class Game {
         );
     }
 
-    updateCamera() {
-        if (
-            !this.aircraft ||
-            !this.camera
-        ) {
-            return;
-        }
-
-        this.updateDirection();
-
-        if (
-            this.cameraMode ===
-            "COCKPIT"
-        ) {
-            this.updateCockpitCamera();
-        } else {
-            this.updateExternalCamera();
-        }
-    }
-
-    updateExternalCamera() {
-        const cameraConfig =
-            this.aircraftDefinition
-                .camera;
-
-        this.cameraPosition
-            .copy(
-                this.aircraft.position
-            )
-            .addScaledVector(
-                this.forwardVector,
-                -cameraConfig
-                    .externalDistance
-            );
-
-        this.cameraPosition.y +=
-            cameraConfig
-                .externalHeight;
-
-        this.cameraTarget
-            .copy(
-                this.aircraft.position
-            )
-            .addScaledVector(
-                this.forwardVector,
-                cameraConfig
-                    .externalTargetDistance
-            );
-
-        this.cameraTarget.y +=
-            cameraConfig
-                .externalTargetHeight;
-
-        this.camera.position.copy(
-            this.cameraPosition
-        );
-
-        this.camera.up.set(
-            0,
-            1,
-            0
-        );
-
-        this.camera.lookAt(
-            this.cameraTarget
-        );
-
-        this.camera.updateMatrixWorld(
-            true
-        );
-    }
-
-    updateCockpitCamera() {
-        const cameraConfig =
-            this.aircraftDefinition
-                .camera;
-
-        this.cameraPosition
-            .copy(
-                this.aircraft.position
-            )
-            .addScaledVector(
-                this.forwardVector,
-                cameraConfig
-                    .cockpitForward
-            );
-
-        this.cameraPosition.y +=
-            cameraConfig
-                .cockpitHeight;
-
-        this.cameraTarget
-            .copy(
-                this.aircraft.position
-            )
-            .addScaledVector(
-                this.forwardVector,
-                cameraConfig
-                    .cockpitLookDistance
-            );
-
-        this.cameraTarget.y +=
-            cameraConfig
-                .cockpitTargetHeight;
-
-        this.camera.position.copy(
-            this.cameraPosition
-        );
-
-        this.camera.up
-            .set(
-                0,
-                1,
-                0
-            )
-            .applyEuler(
-                this.aircraft.rotation
-            );
-
-        this.camera.lookAt(
-            this.cameraTarget
-        );
-
-        this.camera.updateMatrixWorld(
-            true
-        );
-    }
-
     updateRotatingParts(
         deltaTime
     ) {
+        const incidentEffects =
+            this.incidentSystem
+                ?.getEffects() ??
+            {
+                enginePowerMultiplier:
+                    1
+            };
+
         const rotationSpeed =
             (
                 5 +
@@ -1539,6 +2206,8 @@ export class Game {
                     .throttle *
                     70
             ) *
+            incidentEffects
+                .enginePowerMultiplier *
             deltaTime;
 
         const propeller =
@@ -1569,6 +2238,235 @@ export class Game {
                     rotationSpeed;
             }
         }
+    }
+
+    updateSystems(
+        deltaTime
+    ) {
+        this.timeOfDaySystem?.update(
+            deltaTime
+        );
+
+        if (
+            this.timeOfDaySystem
+        ) {
+            this.simulationTime =
+                this.timeOfDaySystem
+                    .getFormattedTime();
+
+            this.sunlight.userData
+                .timeIntensity =
+                this.sunlight.intensity;
+
+            this.hemisphereLight
+                .userData
+                .timeIntensity =
+                this.hemisphereLight
+                    .intensity;
+        }
+
+        this.weatherSystem?.update(
+            deltaTime,
+            {
+                aircraftPosition:
+                    this.aircraft
+                        ?.position,
+
+                aircraftSpeed:
+                    this.flightState
+                        .speedMetersPerSecond,
+
+                timeLightMultiplier:
+                    1
+            }
+        );
+
+        this.incidentSystem?.update(
+            deltaTime,
+            {
+                airborne:
+                    this.flightState
+                        .airborne,
+
+                altitudeMeters:
+                    this.flightState
+                        .altitudeMeters,
+
+                speedMetersPerSecond:
+                    this.flightState
+                        .speedMetersPerSecond,
+
+                verticalSpeed:
+                    this.flightState
+                        .verticalSpeed,
+
+                approachingRunway:
+                    this.flightState
+                        .airborne &&
+                    this.flightState
+                        .altitudeMeters <
+                        100,
+
+                crashed:
+                    this.flightState
+                        .crashed
+            }
+        );
+    }
+
+    updateCamera() {
+        if (
+            !this.aircraft ||
+            !this.camera
+        ) {
+            return;
+        }
+
+        this.updateDirection();
+
+        if (
+            this.cameraMode ===
+            "COCKPIT"
+        ) {
+            this.updateCockpitCamera();
+        } else {
+            this.updateExternalCamera();
+        }
+
+        this.applyCameraShake();
+    }
+
+    updateExternalCamera() {
+        const config =
+            this.aircraftDefinition
+                .camera;
+
+        this.cameraPosition
+            .copy(
+                this.aircraft.position
+            )
+            .addScaledVector(
+                this.forwardVector,
+                -config
+                    .externalDistance
+            );
+
+        this.cameraPosition.y +=
+            config
+                .externalHeight;
+
+        this.cameraTarget
+            .copy(
+                this.aircraft.position
+            )
+            .addScaledVector(
+                this.forwardVector,
+                config
+                    .externalTargetDistance
+            );
+
+        this.cameraTarget.y +=
+            config
+                .externalTargetHeight;
+
+        this.camera.position.copy(
+            this.cameraPosition
+        );
+
+        this.camera.up.set(
+            0,
+            1,
+            0
+        );
+
+        this.camera.lookAt(
+            this.cameraTarget
+        );
+    }
+
+    updateCockpitCamera() {
+        const config =
+            this.aircraftDefinition
+                .camera;
+
+        this.cameraPosition
+            .copy(
+                this.aircraft.position
+            )
+            .addScaledVector(
+                this.forwardVector,
+                config
+                    .cockpitForward
+            );
+
+        this.cameraPosition.y +=
+            config
+                .cockpitHeight;
+
+        this.cameraTarget
+            .copy(
+                this.aircraft.position
+            )
+            .addScaledVector(
+                this.forwardVector,
+                config
+                    .cockpitLookDistance
+            );
+
+        this.cameraTarget.y +=
+            config
+                .cockpitTargetHeight;
+
+        this.camera.position.copy(
+            this.cameraPosition
+        );
+
+        this.camera.up
+            .set(
+                0,
+                1,
+                0
+            )
+            .applyEuler(
+                this.aircraft.rotation
+            );
+
+        this.camera.lookAt(
+            this.cameraTarget
+        );
+    }
+
+    applyCameraShake() {
+        if (
+            this.cameraShake.remaining <=
+            0
+        ) {
+            return;
+        }
+
+        const strength =
+            this.cameraShake.strength;
+
+        this.camera.position.x +=
+            (
+                Math.random() -
+                0.5
+            ) *
+            strength;
+
+        this.camera.position.y +=
+            (
+                Math.random() -
+                0.5
+            ) *
+            strength;
+
+        this.camera.position.z +=
+            (
+                Math.random() -
+                0.5
+            ) *
+            strength;
     }
 
     updateHUD() {
@@ -1602,72 +2500,86 @@ export class Game {
                     .pitch
             );
 
-        this.hudValues.time
-            .textContent =
-            this.timeFormatter.format(
-                new Date()
-            );
+        this.hudValues.time.textContent =
+            this.simulationTime;
 
-        this.hudValues.speed
-            .textContent =
+        this.hudValues.weather.textContent =
+            this.weatherState;
+
+        this.hudValues.speed.textContent =
             `${speedKmh} km/h`;
 
-        this.hudValues.altitude
-            .textContent =
+        this.hudValues.altitude.textContent =
             `${altitudeMeters} m`;
 
-        this.hudValues.throttle
-            .textContent =
+        this.hudValues.throttle.textContent =
             `${throttlePercent}%`;
 
-        this.hudValues.pitch
-            .textContent =
-            `${pitchDegrees.toFixed(
-                1
-            )} deg`;
+        this.hudValues.pitch.textContent =
+            `${pitchDegrees.toFixed(1)} deg`;
 
-        this.hudValues.mode
-            .textContent =
-            this.flightState
-                .airborne
+        this.hudValues.mode.textContent =
+            this.flightState.airborne
                 ? "AIR"
                 : "GROUND";
 
-        this.hudValues.mode
-            .style.color =
-            this.flightState
-                .airborne
+        this.hudValues.mode.style.color =
+            this.flightState.airborne
                 ? "#48f08b"
                 : "#ffffff";
 
-        this.hudValues.brake
-            .textContent =
-            this.flightState
-                .brakeActive
+        this.hudValues.brake.textContent =
+            this.flightState.brakeActive
                 ? "ON"
                 : "OFF";
 
-        this.hudValues.brake
-            .style.color =
-            this.flightState
-                .brakeActive
+        this.hudValues.brake.style.color =
+            this.flightState.brakeActive
                 ? "#ff8a74"
                 : "#ffffff";
 
-        this.hudValues.camera
-            .textContent =
+        this.hudValues.camera.textContent =
             this.cameraMode;
 
         this.hudValues
             .throttleBar
             .style.width =
             `${throttlePercent}%`;
+
+        const incidentEffects =
+            this.incidentSystem
+                ?.getEffects();
+
+        if (
+            incidentEffects
+                ?.instrumentVisibility <
+            0.5
+        ) {
+            this.hudRoot.style.opacity =
+                "0.55";
+        } else {
+            this.hudRoot.style.opacity =
+                "1";
+        }
     }
 
-    update(deltaTime) {
+    update(
+        deltaTime
+    ) {
         if (!this.aircraft) {
             return;
         }
+
+        this.cameraShake.remaining =
+            Math.max(
+                0,
+                this.cameraShake.remaining -
+                    deltaTime
+            );
+
+        this.updateSystems(
+            deltaTime
+        );
 
         this.updateControls(
             deltaTime
@@ -1788,24 +2700,21 @@ export class Game {
         );
 
         this.keys.clear();
-
-        for (
-            const action of
-            Object.keys(
-                this.touchState
-            )
-        ) {
-            this.touchState[action] =
-                false;
-        }
-
         this.clock.stop();
 
+        this.incidentSystem
+            ?.resolveAllIncidents();
+
+        this.weatherSystem
+            ?.dispose();
+
         this.hudRoot?.remove();
+        this.messageRoot?.remove();
+
         this.hudRoot = null;
+        this.messageRoot = null;
 
         this.renderer?.dispose();
-
         this.renderer
             ?.domElement
             .remove();
@@ -1813,6 +2722,11 @@ export class Game {
         this.aircraft = null;
         this.airport = null;
         this.city = null;
+
+        this.timeOfDaySystem = null;
+        this.weatherSystem = null;
+        this.incidentSystem = null;
+
         this.renderer = null;
         this.camera = null;
         this.scene = null;
