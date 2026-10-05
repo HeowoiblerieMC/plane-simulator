@@ -18,7 +18,7 @@ import {
 
 import {
     IncidentSystem
-} from "../events/incidentsystem.js";
+} from "../environment/incidentsystem.js";
 
 import {
     getAircraftById
