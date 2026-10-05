@@ -2,7 +2,7 @@ import * as THREE from "three";
 
 import {
     FireEffect
-} from "./fireeffect.js";
+} from "./fireeffects.js";
 
 import {
     SmokeEffect
