@@ -6,7 +6,7 @@ import {
 
 import {
     SmokeEffect
-} from "./smokeeffect.js";
+} from "./smokeeffects.js";
 
 function createLampMesh(
     color,
