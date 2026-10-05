@@ -380,32 +380,3 @@ export function createAirliner100() {
 
     return aircraft;
 }
-
-aircraft.userData = {
-    aircraftId: "airliner100",
-    displayName:
-        "NOVA AIRLINER 100",
-    aircraftType:
-        "FIXED_WING",
-
-    rotatingParts: [
-        leftEngine.userData.fan,
-        rightEngine.userData.fan
-    ],
-
-    firePoints: {
-        leftEngine:
-            new THREE.Vector3(
-                -4.6,
-                1.45,
-                0.2
-            ),
-
-        rightEngine:
-            new THREE.Vector3(
-                4.6,
-                1.45,
-                0.2
-            )
-    }
-};
