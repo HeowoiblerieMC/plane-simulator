@@ -1,13 +1,17 @@
 import "./style.css";
+
 import {
     Game
 } from "./core/game.js";
+
 import {
     UIManager
 } from "./ui/uimanager.js";
 
 const container =
-    document.querySelector("#app");
+    document.querySelector(
+        "#app"
+    );
 
 if (!container) {
     throw new Error(
@@ -16,27 +20,36 @@ if (!container) {
 }
 
 document
-    .querySelector("#startup-status")
+    .querySelector(
+        "#startup-status"
+    )
     ?.remove();
 
 let game = null;
 
 const uiManager =
     new UIManager({
-        onPlay: (
-            selectedAircraftId
-        ) => {
-            game?.stop();
+        onPlay:
+            ({
+                selectedAircraftId,
+                flightSettings
+            }) => {
+                game?.stop();
 
-            game = new Game(
-                container,
-                {
-                    selectedAircraftId
-                }
-            );
+                game =
+                    new Game(
+                        container,
+                        {
+                            selectedAircraftId,
 
-            game.start();
-        }
+                            flightSettings: {
+                                ...flightSettings
+                            }
+                        }
+                    );
+
+                game.start();
+            }
     });
 
 uiManager.showTitleScreen();
