@@ -10,10 +10,7 @@ export const INCIDENT_TYPES = {
     BIRD_STRIKE: "BIRD_STRIKE"
 };
 
-const FIRE_TEST_MODE = true;
-const FIRE_TEST_DELAY_SECONDS = 5;
-const FIRE_TEST_MINIMUM_ALTITUDE_METERS = 2;
-const FIRE_TEST_TRIGGER_CHANCE = 1;
+const FIRE_TEST_MODE = false;
 
 const INCIDENT_DEFINITIONS = {
     MEDICAL_EMERGENCY: {
@@ -77,7 +74,7 @@ const INCIDENT_DEFINITIONS = {
             "Engine fire detected. Reduce power and prepare for an emergency landing.",
         major: true,
         passengerRelated: false,
-        minimumAltitude: FIRE_TEST_MINIMUM_ALTITUDE_METERS,
+        minimumAltitude: 30,
         duration: 0
     },
 
@@ -203,15 +200,10 @@ export class IncidentSystem {
         this.elapsedTime = 0;
 
         this.checkTimer =
-            FIRE_TEST_MODE
-                ? FIRE_TEST_DELAY_SECONDS
-                : randomRange(
-                    this.minimumCheckInterval,
-                    this.maximumCheckInterval
-                );
-
-        this.fireTestTriggered =
-            false;
+            randomRange(
+                this.minimumCheckInterval,
+                this.maximumCheckInterval
+            );
 
         this.activeIncidents =
             new Map();
@@ -229,23 +221,12 @@ export class IncidentSystem {
         this.effectState =
             this.createDefaultEffectState();
 
-        this.onIncidentStarted =
-            null;
-
-        this.onIncidentUpdated =
-            null;
-
-        this.onIncidentEnded =
-            null;
-
-        this.onFireRequested =
-            null;
-
-        this.onSmokeRequested =
-            null;
-
-        this.onCameraShakeRequested =
-            null;
+        this.onIncidentStarted = null;
+        this.onIncidentUpdated = null;
+        this.onIncidentEnded = null;
+        this.onFireRequested = null;
+        this.onSmokeRequested = null;
+        this.onCameraShakeRequested = null;
     }
 
     createDefaultEffectState() {
@@ -314,11 +295,6 @@ export class IncidentSystem {
         );
 
         if (FIRE_TEST_MODE) {
-            this.updateFireTest({
-                airborne,
-                altitudeMeters
-            });
-
             return;
         }
 
@@ -326,7 +302,8 @@ export class IncidentSystem {
             deltaTime;
 
         if (
-            this.checkTimer > 0
+            this.checkTimer >
+            0
         ) {
             return;
         }
@@ -344,49 +321,6 @@ export class IncidentSystem {
             verticalSpeed,
             approachingRunway
         });
-    }
-
-    updateFireTest({
-        airborne,
-        altitudeMeters
-    }) {
-        if (
-            this.fireTestTriggered ||
-            this.activeIncidents.size > 0
-        ) {
-            return;
-        }
-
-        if (
-            !airborne ||
-            altitudeMeters <
-                FIRE_TEST_MINIMUM_ALTITUDE_METERS
-        ) {
-            return;
-        }
-
-        this.checkTimer -=
-            1 / 60;
-
-        const fireDelayPassed =
-            this.elapsedTime >=
-            FIRE_TEST_DELAY_SECONDS;
-
-        if (!fireDelayPassed) {
-            return;
-        }
-
-        if (
-            Math.random() <=
-            FIRE_TEST_TRIGGER_CHANCE
-        ) {
-            this.fireTestTriggered =
-                true;
-
-            this.startIncident(
-                INCIDENT_TYPES.ENGINE_FIRE
-            );
-        }
     }
 
     tryGenerateIncident({
@@ -525,18 +459,19 @@ export class IncidentSystem {
         }
 
         if (
-            incident.type ===
-                INCIDENT_TYPES.ENGINE_FAILURE ||
-            incident.type ===
-                INCIDENT_TYPES.ENGINE_FIRE
-        ) {
-            if (
+            (
+                incident.type ===
+                    INCIDENT_TYPES.ENGINE_FAILURE ||
+                incident.type ===
+                    INCIDENT_TYPES.ENGINE_FIRE
+            ) &&
+            (
                 !airborne ||
                 speedMetersPerSecond <
                     15
-            ) {
-                return false;
-            }
+            )
+        ) {
+            return false;
         }
 
         const flightType =
@@ -545,16 +480,12 @@ export class IncidentSystem {
             "FIXED_WING";
 
         if (
-            flightType ===
-                "FIGHTER" &&
-            incident.passengerRelated
-        ) {
-            return false;
-        }
-
-        if (
-            flightType ===
-                "EXPERIMENTAL" &&
+            (
+                flightType ===
+                    "FIGHTER" ||
+                flightType ===
+                    "EXPERIMENTAL"
+            ) &&
             incident.passengerRelated
         ) {
             return false;
@@ -605,9 +536,12 @@ export class IncidentSystem {
         );
 
         this.incidentHistory.push({
-            type: incidentType,
+            type:
+                incidentType,
+
             startedAt:
                 this.elapsedTime,
+
             affectedEngine:
                 incident.affectedEngine
         });
@@ -651,15 +585,7 @@ export class IncidentSystem {
         }
 
         const engineCount =
-            this.aircraftDefinition
-                ?.engineCount ??
-            (
-                this.aircraftDefinition
-                    ?.id ===
-                    "airliner100"
-                    ? 2
-                    : 1
-            );
+            this.getEngineCount();
 
         if (engineCount <= 1) {
             return "MAIN";
@@ -667,7 +593,8 @@ export class IncidentSystem {
 
         if (engineCount === 2) {
             return (
-                Math.random() < 0.5
+                Math.random() <
+                0.5
                     ? "LEFT"
                     : "RIGHT"
             );
@@ -681,86 +608,48 @@ export class IncidentSystem {
         }`;
     }
 
+    getEngineCount() {
+        if (
+            Number.isFinite(
+                this.aircraftDefinition
+                    ?.engineCount
+            )
+        ) {
+            return this
+                .aircraftDefinition
+                .engineCount;
+        }
+
+        if (
+            this.aircraftDefinition
+                ?.id ===
+            "airliner100"
+        ) {
+            return 2;
+        }
+
+        return 1;
+    }
+
     applyIncidentEffect(
         incident
     ) {
         switch (
             incident.type
         ) {
-            case INCIDENT_TYPES.ENGINE_FAILURE: {
-                const engineCount =
-                    this.getEngineCount();
-
-                this.effectState
-                    .engineFailureActive =
-                    true;
-
-                this.effectState
-                    .enginePowerMultiplier =
-                    engineCount <= 1
-                        ? 0
-                        : (
-                            engineCount -
-                            1
-                        ) /
-                            engineCount;
-
-                this.applyAsymmetricThrust(
-                    incident.affectedEngine
+            case INCIDENT_TYPES.ENGINE_FAILURE:
+                this.applyEngineFailure(
+                    incident
                 );
-
                 break;
-            }
 
-            case INCIDENT_TYPES.ENGINE_FIRE: {
-                const engineCount =
-                    this.getEngineCount();
-
-                this.effectState
-                    .engineFireActive =
-                    true;
-
-                this.effectState
-                    .enginePowerMultiplier =
-                    engineCount <= 1
-                        ? 0.25
-                        : Math.max(
-                            0.45,
-                            (
-                                engineCount -
-                                1
-                            ) /
-                                engineCount
-                        );
-
-                this.applyAsymmetricThrust(
-                    incident.affectedEngine
+            case INCIDENT_TYPES.ENGINE_FIRE:
+                this.applyEngineFire(
+                    incident
                 );
-
-                this.onFireRequested?.({
-                    active: true,
-                    affectedEngine:
-                        incident
-                            .affectedEngine
-                });
-
-                this.onSmokeRequested?.({
-                    active: true,
-                    smokeType: "BLACK",
-                    affectedEngine:
-                        incident
-                            .affectedEngine
-                });
-
-                this.onCameraShakeRequested?.({
-                    duration: 1.5,
-                    strength: 0.14
-                });
-
                 break;
-            }
 
-            case INCIDENT_TYPES.HYDRAULIC_FAULT: {
+            case INCIDENT_TYPES.HYDRAULIC_FAULT:
                 this.effectState
                     .pitchControlMultiplier =
                     0.52;
@@ -772,19 +661,15 @@ export class IncidentSystem {
                 this.effectState
                     .steeringMultiplier =
                     0.65;
-
                 break;
-            }
 
-            case INCIDENT_TYPES.ELECTRICAL_FAULT: {
+            case INCIDENT_TYPES.ELECTRICAL_FAULT:
                 this.effectState
                     .instrumentVisibility =
                     0.38;
-
                 break;
-            }
 
-            case INCIDENT_TYPES.LANDING_GEAR_FAULT: {
+            case INCIDENT_TYPES.LANDING_GEAR_FAULT:
                 this.effectState
                     .landingGearIntegrity =
                     0.42;
@@ -792,11 +677,9 @@ export class IncidentSystem {
                 this.effectState
                     .brakingMultiplier =
                     0.62;
-
                 break;
-            }
 
-            case INCIDENT_TYPES.CABIN_SMOKE: {
+            case INCIDENT_TYPES.CABIN_SMOKE:
                 this.effectState
                     .cabinSmokeActive =
                     true;
@@ -806,11 +689,9 @@ export class IncidentSystem {
                     smokeType: "GRAY",
                     affectedEngine: null
                 });
-
                 break;
-            }
 
-            case INCIDENT_TYPES.BIRD_STRIKE: {
+            case INCIDENT_TYPES.BIRD_STRIKE:
                 this.effectState
                     .enginePowerMultiplier =
                     Math.min(
@@ -823,37 +704,84 @@ export class IncidentSystem {
                     duration: 1.1,
                     strength: 0.18
                 });
-
                 break;
-            }
 
             default:
                 break;
         }
     }
 
-    getEngineCount() {
-        if (
-            Number.isFinite(
-                this.aircraftDefinition
-                    ?.engineCount
-            )
-        ) {
-            return (
-                this.aircraftDefinition
-                    .engineCount
-            );
-        }
+    applyEngineFailure(
+        incident
+    ) {
+        const engineCount =
+            this.getEngineCount();
 
-        if (
-            this.aircraftDefinition
-                ?.id ===
-            "airliner100"
-        ) {
-            return 2;
-        }
+        this.effectState
+            .engineFailureActive =
+            true;
 
-        return 1;
+        this.effectState
+            .enginePowerMultiplier =
+            engineCount <= 1
+                ? 0
+                : (
+                    engineCount -
+                    1
+                ) /
+                    engineCount;
+
+        this.applyAsymmetricThrust(
+            incident.affectedEngine
+        );
+    }
+
+    applyEngineFire(
+        incident
+    ) {
+        const engineCount =
+            this.getEngineCount();
+
+        this.effectState
+            .engineFireActive =
+            true;
+
+        this.effectState
+            .enginePowerMultiplier =
+            engineCount <= 1
+                ? 0.25
+                : Math.max(
+                    0.45,
+                    (
+                        engineCount -
+                        1
+                    ) /
+                        engineCount
+                );
+
+        this.applyAsymmetricThrust(
+            incident.affectedEngine
+        );
+
+        this.onFireRequested?.({
+            active: true,
+
+            affectedEngine:
+                incident.affectedEngine
+        });
+
+        this.onSmokeRequested?.({
+            active: true,
+            smokeType: "BLACK",
+
+            affectedEngine:
+                incident.affectedEngine
+        });
+
+        this.onCameraShakeRequested?.({
+            duration: 1.5,
+            strength: 0.14
+        });
     }
 
     applyAsymmetricThrust(
@@ -968,7 +896,8 @@ export class IncidentSystem {
 
         for (
             const incident of
-            this.activeIncidents.values()
+            this.activeIncidents
+                .values()
         ) {
             this.applyIncidentEffect(
                 incident
@@ -1023,9 +952,6 @@ export class IncidentSystem {
             fireTestMode:
                 FIRE_TEST_MODE,
 
-            fireTestTriggered:
-                this.fireTestTriggered,
-
             elapsedTime:
                 this.elapsedTime,
 
@@ -1065,17 +991,13 @@ export class IncidentSystem {
         this.elapsedTime = 0;
 
         this.checkTimer =
-            FIRE_TEST_MODE
-                ? FIRE_TEST_DELAY_SECONDS
-                : randomRange(
-                    this.minimumCheckInterval,
-                    this.maximumCheckInterval
-                );
-
-        this.fireTestTriggered =
-            false;
+            randomRange(
+                this.minimumCheckInterval,
+                this.maximumCheckInterval
+            );
 
         this.activeIncidents.clear();
+
         this.incidentHistory = [];
 
         this.majorIncidentCount = 0;
